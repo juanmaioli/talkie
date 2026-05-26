@@ -183,9 +183,10 @@ app.post('/format-ai', (req, res) => {
     }
   });
 
-  // Agente HTTPS que ignora certificados locales autofirmados para el contenedor Docker
+  // Agente HTTPS que ignora certificados locales autofirmados y discrepancias de nombres de host
   const agent = new https.Agent({
-    rejectUnauthorized: false
+    rejectUnauthorized: false,
+    checkServerIdentity: () => undefined
   });
 
   // Prompt en español de Argentina estricto y estructurado de acuerdo con la elección del usuario
