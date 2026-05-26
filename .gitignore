@@ -1,0 +1,18 @@
+# Dependencias
+node_modules/
+
+# Archivos de entorno
+.env
+
+# Archivos temporales de subida
+uploads/*
+!uploads/.gitkeep
+
+# Whisper.cpp (Código fuente, binarios compilados y modelos pesados de 1.5 GB)
+whisper.cpp/
+
+# Archivos privados y configuraciones locales
+GEMINI.md
+.gemini/
+.DS_Store
+*.log

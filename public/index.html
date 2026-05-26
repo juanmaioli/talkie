@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Talkie - Transcripción Accesible Local</title>
+  <!-- Favicon de emoji en formato inline solicitado por el usuario -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎙️</text></svg>">
+  <!-- Google Fonts para mejor legibilidad -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Bootstrap 5.3 CSS con modo oscuro nativo -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <!-- Estilos CSS personalizados para accesibilidad y diseño premium -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Encabezado accesible -->
+  <header class="py-4 border-bottom border-secondary-subtle">
+    <div class="container d-flex flex-wrap justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-3">
+        <span class="fs-1" aria-hidden="true">🎙️</span>
+        <div>
+          <h1 class="h2 mb-0 fw-bold bg-gradient-title">Talkie</h1>
+          <p class="small text-secondary mb-0">Transcripción de audio a texto 100% local y privada</p>
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-3 mt-3 mt-sm-0">
+        <!-- Switch de Tema Claro/Oscuro con Emojis -->
+        <div class="form-check form-switch d-flex align-items-center gap-2 border border-secondary-subtle px-3 py-2 rounded-pill bg-body-tertiary shadow-sm m-0 cursor-pointer" title="Cambiar tema claro/oscuro">
+          <span class="fs-7 select-none" aria-hidden="true">☀️</span>
+          <input class="form-check-input ms-0 me-0 cursor-pointer" type="checkbox" id="theme-switch" role="switch" aria-label="Cambiar tema de la aplicación (claro u oscuro)" checked>
+          <span class="fs-7 select-none" aria-hidden="true">🌙</span>
+        </div>
+
+        <!-- Estado del Servidor -->
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fs-7 d-flex align-items-center gap-2">
+          <span class="spinner-grow spinner-grow-sm text-success" role="status" aria-hidden="true"></span>
+          Servidor Local Activo
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <main class="container my-5" role="main">
+    <div class="row g-4 justify-content-center">
+      
+      <!-- Panel de carga de archivos -->
+      <section class="col-lg-8" aria-labelledby="upload-section-title">
+        <div class="card card-premium p-4 p-md-5 text-center">
+          <h2 id="upload-section-title" class="h4 mb-3 fw-semibold">1. Subí tu archivo de audio MP3</h2>
+          <p class="text-secondary mb-4">El procesamiento se realizará de forma local en tu computadora utilizando el motor Whisper compilado de forma nativa.</p>
+          
+          <!-- Selector de modelo accesible -->
+          <div class="mb-4 text-start bg-dark-subtle p-3 rounded-4 border border-secondary">
+            <label for="model-select" class="form-label fw-semibold text-light mb-1 d-flex align-items-center gap-2">
+              <span>🧠</span> Elegir Modelo de Transcripción:
+            </label>
+            <select id="model-select" class="form-select bg-dark text-light border-secondary rounded-pill px-3 py-2 cursor-pointer" aria-label="Elegir modelo de procesamiento">
+              <option value="medium">Modelo Medium (Precisión Máxima - 1.5 GB) [Ideal para fidelidad extrema]</option>
+              <option value="small" selected>Modelo Small (Equilibrado - 460 MB) [Balance ideal velocidad/precisión]</option>
+              <option value="base">Modelo Base (Ultra Rápido - 140 MB) [Ideal para audios largos/velocidad]</option>
+            </select>
+            <div class="form-text text-secondary mt-2 small">
+              * El modelo <strong>Base</strong> es el más veloz. El modelo <strong>Small</strong> brinda un excelente balance de rendimiento y el modelo <strong>Medium</strong> ofrece máxima fidelidad ortográfica.
+            </div>
+          </div>
+          
+          <!-- Zona de arrastre accesible -->
+          <div id="drop-zone" class="drop-zone d-flex flex-column align-items-center justify-content-center p-5 rounded-4 border border-dashed cursor-pointer" tabindex="0" role="button" aria-label="Subir archivo de audio MP3. Presioná enter para seleccionar un archivo o arrastralo aquí.">
+            <span class="fs-1 mb-3 text-secondary" aria-hidden="true">🎵</span>
+            <p class="fs-5 fw-medium mb-1">Arrastrá tu archivo MP3 acá</p>
+            <p class="text-secondary small mb-3">o hacé clic para explorar tus archivos</p>
+            <span class="btn btn-outline-light rounded-pill px-4" id="select-file-btn">Seleccionar Archivo</span>
+            <input type="file" id="audio-input" accept="audio/mpeg, audio/mp3" class="d-none">
+          </div>
+
+          <!-- Información del archivo seleccionado -->
+          <div id="file-info" class="mt-4 p-3 bg-dark-subtle rounded-3 d-none border border-secondary flex-wrap justify-content-between align-items-center text-start gap-3">
+            <div class="d-flex align-items-center gap-3">
+              <span class="fs-2" aria-hidden="true">📄</span>
+              <div>
+                <p id="file-name" class="fw-semibold mb-0 text-truncate" style="max-width: 250px;"></p>
+                <p id="file-size" class="small text-secondary mb-0"></p>
+              </div>
+            </div>
+            <div class="d-flex gap-2">
+              <button id="transcribe-btn" class="btn btn-primary rounded-pill px-4 d-flex align-items-center gap-2 fw-semibold">
+                <span>Transcribir Audio</span>
+                <span class="fs-6" aria-hidden="true">⚡</span>
+              </button>
+              <button id="remove-file-btn" class="btn btn-outline-danger rounded-pill px-3" aria-label="Quitar archivo seleccionado">Quitar</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Estado de la Transcripción (Oculto por defecto) -->
+      <section class="col-lg-8 d-none" id="progress-section" aria-live="polite" aria-labelledby="progress-title">
+        <div class="card card-premium p-4 p-md-5 text-center">
+          <h2 id="progress-title" class="h4 mb-3 fw-semibold d-flex justify-content-center align-items-center gap-2">
+            <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
+            Procesando audio localmente
+          </h2>
+          <p class="text-secondary mb-4">Esto puede demorar unos minutos dependiendo de la duración de tu audio y la potencia de tu equipo.</p>
+          
+          <div class="progress mb-3" style="height: 12px; border-radius: 6px;">
+            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso de la transcripción"></div>
+          </div>
+          <div class="d-flex justify-content-between text-secondary small mb-3">
+            <span id="progress-status">Preparando conversión...</span>
+            <span id="progress-percent">0%</span>
+          </div>
+          
+          <button id="cancel-btn" class="btn btn-outline-danger rounded-pill px-4 mt-3 d-inline-flex align-items-center gap-2 fw-semibold mx-auto" aria-label="Cancelar procesamiento de audio">
+            <span>Cancelar Transcripción</span>
+            <span class="fs-6" aria-hidden="true">⏹️</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Contenedor del Resultado -->
+      <section class="col-lg-8 d-none" id="result-section" aria-labelledby="result-title">
+        <div class="card card-premium p-4 p-md-5">
+          <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 border-bottom pb-3 border-secondary-subtle">
+            <h2 id="result-title" class="h4 mb-0 fw-semibold d-flex align-items-center gap-2">
+              <span>Resultados de Talkie</span>
+              <span class="fs-5" aria-hidden="true">📊</span>
+            </h2>
+            <button id="new-transcription-btn" class="btn btn-outline-info rounded-pill px-3 d-flex align-items-center gap-2" aria-label="Cargar otro archivo para una nueva transcripción">
+              <span>Cargar otro</span>
+              <span class="fs-6" aria-hidden="true">🔄</span>
+            </button>
+          </div>
+
+          <!-- Pestañas de Navegación de Bootstrap 5.3 -->
+          <ul class="nav nav-tabs mb-4 border-secondary-subtle" id="resultTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active px-4 py-2 fw-semibold" id="raw-tab" data-bs-toggle="tab" data-bs-target="#raw-content" type="button" role="tab" aria-controls="raw-content" aria-selected="true">
+                📄 Transcripción Cruda
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link px-4 py-2 fw-semibold" id="ai-tab" data-bs-toggle="tab" data-bs-target="#ai-content" type="button" role="tab" aria-controls="ai-content" aria-selected="false">
+                ⚡ Nota Inteligente con IA
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content" id="resultTabsContent">
+            <!-- Pestaña 1: Transcripción Cruda -->
+            <div class="tab-pane fade show active" id="raw-content" role="tabpanel" aria-labelledby="raw-tab">
+              <!-- Botones de Acción para Crudo -->
+              <div class="d-flex gap-2 justify-content-end mb-3 flex-wrap">
+                <button id="copy-btn" class="btn btn-outline-light rounded-pill px-3 d-flex align-items-center gap-2" aria-label="Copiar transcripción al portapapeles">
+                  <span id="copy-btn-text">Copiar</span>
+                  <span class="fs-6" aria-hidden="true">📋</span>
+                </button>
+                <button id="download-btn" class="btn btn-primary rounded-pill px-3 d-flex align-items-center gap-2" aria-label="Descargar transcripción en formato Markdown">
+                  <span>Descargar (.md)</span>
+                  <span class="fs-6" aria-hidden="true">💾</span>
+                </button>
+              </div>
+              <!-- Contenedor del Texto Transcrito -->
+              <div class="transcription-container p-4 rounded-4 border bg-dark border-secondary">
+                <div id="transcription-text" class="transcription-text" tabindex="0" role="textbox" aria-readonly="true" aria-label="Texto transcrito crudo"></div>
+              </div>
+            </div>
+
+            <!-- Pestaña 2: Nota Inteligente con IA -->
+            <div class="tab-pane fade" id="ai-content" role="tabpanel" aria-labelledby="ai-tab">
+              <!-- Estado inicial: Botón de generación -->
+              <div id="ai-placeholder" class="text-center py-5">
+                <p class="text-secondary mb-4 fs-5">¿Querés traducir esta transcripción al español y formatearla de forma estructurada con títulos, resúmenes y tareas con IA?</p>
+                <button id="generate-ai-btn" class="btn btn-primary btn-premium-ai rounded-pill px-5 py-3 fw-bold d-inline-flex align-items-center gap-2 shadow">
+                  <span>Estructurar y Traducir con IA</span>
+                  <span class="fs-5" aria-hidden="true">⚡</span>
+                </button>
+              </div>
+
+              <!-- Estado cargando: Spinner interactivo -->
+              <div id="ai-loading" class="text-center py-5 d-none">
+                <div class="spinner-border text-info mb-3" style="width: 3rem; height: 3rem;" role="status">
+                  <span class="visually-hidden">Procesando con IA...</span>
+                </div>
+                <h3 class="h5 fw-semibold mb-2">Conectando con Ollama en drawers.docker...</h3>
+                <p class="text-secondary mb-4">Traduciendo al español y estructurando tu nota en Markdown...</p>
+                <button id="cancel-ai-btn" class="btn btn-outline-danger rounded-pill px-4 d-inline-flex align-items-center gap-2" aria-label="Cancelar procesamiento de IA">
+                  <span>Cancelar Procesamiento</span>
+                  <span class="fs-6" aria-hidden="true">⏹️</span>
+                </button>
+              </div>
+
+              <!-- Estado completado: Resultados de la IA -->
+              <div id="ai-result" class="d-none animate-fade-in">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-3 border-bottom pb-3 border-secondary-subtle">
+                  <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2 rounded-pill fw-semibold fs-7 d-inline-flex align-items-center gap-2">
+                    <span class="spinner-grow spinner-grow-sm text-info" style="width: 8px; height: 8px;" role="status" aria-hidden="true"></span>
+                    Nota Estructurada con Gemma 🤖
+                  </span>
+                  <div class="d-flex gap-2">
+                    <button id="copy-ai-btn" class="btn btn-outline-light rounded-pill px-3 d-flex align-items-center gap-2" aria-label="Copiar nota inteligente al portapapeles">
+                      <span id="copy-ai-btn-text">Copiar Nota</span>
+                      <span class="fs-6" aria-hidden="true">📋</span>
+                    </button>
+                    <button id="download-ai-btn" class="btn btn-primary rounded-pill px-3 d-flex align-items-center gap-2" aria-label="Descargar nota inteligente en Markdown">
+                      <span>Descargar Nota (.md)</span>
+                      <span class="fs-6" aria-hidden="true">💾</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="transcription-container p-4 rounded-4 border bg-dark border-secondary">
+                  <div id="ai-text" class="transcription-text" tabindex="0" role="textbox" aria-readonly="true" aria-label="Nota estructurada por IA"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Pie de página accesible -->
+  <footer class="py-4 border-top border-secondary-subtle text-center text-secondary small">
+    <div class="container">
+      <p class="mb-0">Talkie - Desarrollado de forma local y privada con ❤️ para Juan Gabriel Maioli</p>
+    </div>
+  </footer>
+
+  <!-- Bootstrap Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <!-- Lógica dinámica del cliente -->
+  <script src="app.js"></script>
+</body>
+</html>

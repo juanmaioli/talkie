@@ -1,0 +1,275 @@
+/* variables de diseño premium y colores accesibles */
+:root {
+  --font-title: 'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --focus-ring-color: #38bdf8;
+  --focus-ring-width: 3px;
+}
+
+/* Tema Oscuro (Por defecto) */
+[data-bs-theme="dark"] {
+  --bg-gradient: linear-gradient(135deg, #12141c 0%, #1a1d29 100%);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --card-bg: rgba(26, 29, 41, 0.65);
+  --text-color: #e2e8f0;
+  --text-active-color: #ffffff;
+  
+  --dropzone-bg: rgba(13, 15, 23, 0.4);
+  --dropzone-border: rgba(255, 255, 255, 0.15);
+  
+  --transcription-bg: #090b11;
+  --transcription-border: rgba(255, 255, 255, 0.1);
+  --transcription-text-color: #f1f5f9;
+  
+  --scrollbar-track: rgba(255, 255, 255, 0.02);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
+  
+  --shadow-intensity: rgba(0, 0, 0, 0.25);
+  --shadow-hover-intensity: rgba(0, 0, 0, 0.35);
+}
+
+/* Tema Claro */
+[data-bs-theme="light"] {
+  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --text-color: #334155;
+  --text-active-color: #0f172a;
+  
+  --dropzone-bg: rgba(241, 245, 249, 0.7);
+  --dropzone-border: rgba(0, 0, 0, 0.15);
+  
+  --transcription-bg: #ffffff;
+  --transcription-border: rgba(0, 0, 0, 0.1);
+  --transcription-text-color: #1e293b;
+  
+  --scrollbar-track: rgba(0, 0, 0, 0.03);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
+  
+  --shadow-intensity: rgba(15, 23, 42, 0.06);
+  --shadow-hover-intensity: rgba(15, 23, 42, 0.1);
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-color);
+  min-height: 100vh;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  color: var(--text-active-color);
+}
+
+/* Gradiente premium para títulos */
+.bg-gradient-title {
+  background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Estilo premium de tarjetas con efecto de vidrio esmerilado (glassmorphism) */
+.card-premium {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  box-shadow: 0 10px 30px var(--shadow-intensity);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-premium:hover {
+  border-color: rgba(129, 140, 248, 0.2);
+  box-shadow: 0 15px 40px var(--shadow-hover-intensity);
+}
+
+/* Estilo interactivo de la zona de arrastre (Drop Zone) */
+.drop-zone {
+  background: var(--dropzone-bg);
+  border: 2px dashed var(--dropzone-border);
+  transition: all 0.25s ease;
+}
+
+.drop-zone:hover,
+.drop-zone:focus-visible {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.05);
+  transform: translateY(-2px);
+}
+
+.drop-zone.dragover {
+  border-color: #818cf8;
+  background: rgba(129, 140, 248, 0.08);
+  transform: scale(1.02);
+}
+
+/* Mejoras críticas de accesibilidad para navegación por teclado */
+*:focus {
+  outline: none !important;
+}
+
+*:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color) !important;
+  outline-offset: 4px !important;
+  border-radius: 4px;
+}
+
+.btn:focus-visible,
+.drop-zone:focus-visible,
+.form-range:focus-visible,
+.form-check-input:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color) !important;
+  outline-offset: 4px !important;
+}
+
+/* Estilo premium de la caja de transcripción */
+.transcription-container {
+  background: var(--transcription-bg) !important;
+  border-color: var(--transcription-border) !important;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+[data-bs-theme="dark"] .transcription-container {
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* Tipografía de la transcripción optimizada para lectura de baja visión */
+.transcription-text {
+  font-size: 1.15rem;
+  line-height: 1.85;
+  color: var(--transcription-text-color);
+  letter-spacing: 0.01em;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+/* Barra de desplazamiento personalizada */
+.transcription-text::-webkit-scrollbar {
+  width: 8px;
+}
+
+.transcription-text::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 4px;
+}
+
+.transcription-text::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+.transcription-text::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Clases de utilidad comunes */
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+.select-none {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Micro-animaciones y suavizados */
+.btn {
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+/* Adaptación del switch de temas */
+.form-switch .form-check-input {
+  transition: background-position 0.15s ease-in-out, background-color 0.2s ease;
+}
+
+/* Estilos Premium para Pestañas de Navegación (Bootstrap nav-tabs) */
+.nav-tabs {
+  border-bottom: 2px solid var(--border-color) !important;
+}
+
+.nav-tabs .nav-link {
+  color: var(--text-color);
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.25s ease;
+  border-radius: 0;
+}
+
+.nav-tabs .nav-link:hover {
+  color: var(--text-active-color);
+  border-bottom-color: rgba(56, 189, 248, 0.4);
+}
+
+.nav-tabs .nav-link.active {
+  color: #38bdf8 !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 3px solid #38bdf8 !important;
+  font-weight: 600;
+}
+
+[data-bs-theme="light"] .nav-tabs .nav-link.active {
+  color: #0284c7 !important;
+  border-bottom-color: #0284c7 !important;
+}
+
+/* Botón de IA Premium con Gradiente y Micro-animación */
+.btn-premium-ai {
+  background: linear-gradient(135deg, #a855f7 0%, #6366f1 50%, #3b82f6 100%) !important;
+  border: none !important;
+  color: #ffffff !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3) !important;
+}
+
+.btn-premium-ai:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 8px 25px rgba(168, 85, 247, 0.5) !important;
+}
+
+.btn-premium-ai:active {
+  transform: translateY(1px) scale(0.98) !important;
+}
+
+/* Animaciones y transiciones de entrada */
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mejoras visuales de accesibilidad de enfoque para pestañas */
+.nav-tabs .nav-link:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color) !important;
+  outline-offset: -2px !important;
+  border-radius: 4px 4px 0 0;
+}
