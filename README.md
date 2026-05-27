@@ -1,7 +1,7 @@
 # 🎙️ Talkie
 [Guía de Uso Rápido](file:///home/juan/Documentos/Dev/Apps/Vox2Text/README.md#4-uso-y-accesibilidad)
 
-**Talkie** es una aplicación web autohospedada diseñada para la transcripción accesible de archivos de audio MP3 a texto y el post-procesamiento inteligente de notas. La aplicación procesa el audio de forma **100% local y privada** mediante Whisper.cpp, y luego permite estructurar y traducir la transcripción de manera ágil a través de la **API de Google Gemini (gemini-2.5-flash)** de forma segura bajo demanda.
+**Talkie** es una aplicación web autohospedada diseñada para la transcripción accesible de archivos de audio MP3 a texto y el post-procesamiento inteligente de notas. La aplicación procesa el audio de forma **100% local y privada** mediante Whisper.cpp (sea cargando un archivo local o pegando un enlace de **YouTube** a través de la robusta utilidad local **`yt-dlp`**), y luego permite estructurar y traducir la transcripción de manera ágil a través de la **API de Google Gemini (gemini-2.5-flash)** de forma segura bajo demanda.
 
 La interfaz de usuario fue diseñada bajo estrictas directrices de **accesibilidad (A11y)** utilizando **Bootstrap 5.3** (modo oscuro por defecto y modo claro premium), haciéndola sumamente cómoda y legible para personas disminuidas visuales.
 
@@ -9,7 +9,11 @@ La interfaz de usuario fue diseñada bajo estrictas directrices de **accesibilid
 
 ### 1. ⚙️ Características Principales
 
-*   **Transcripción Local y Privada:** Tus audios se transcriben localmente en tu computadora a través de Whisper.cpp. Tus datos personales y de audio permanecen seguros sin subirse a la nube.
+*   **Transcripción Local y Privada:** Tus audios se procesan localmente en tu computadora a través de Whisper.cpp. Tus datos personales y de audio permanecen seguros sin subirse a la nube.
+*   **Entrada Dual (Archivo Local y YouTube):**
+    *   **Subida Local:** Carga directa mediante arrastrar y soltar de archivos MP3.
+    *   **Enlace de YouTube:** Pegá cualquier enlace y el backend utilizará el potente motor local **`yt-dlp`** para extraer la pista de audio de forma ultrarrápida y totalmente inmune a bloqueos.
+    *   **Metadatos Automatizados:** Obtención del título real del video de YouTube, canal del autor y duración, inyectándolos como cabecera Markdown en tu transcripción y autocompletando el nombre de descarga sugerido.
 *   **Modelos de Transcripción Whisper:**
     *   **Modelo Base (140 MB):** Ultra rápido (unas 10 veces más veloz), ideal para audios muy extensos o transcripciones inmediatas.
     *   **Modelo Small (460 MB):** Equilibrado (predeterminado). Ofrece un balance ideal de rendimiento de CPU y precisión.
@@ -35,6 +39,7 @@ Dado que la compilación y configuración del entorno ya se realizaron con éxit
 #### Requisitos del Sistema
 *   **Node.js** (v18 o superior).
 *   **FFmpeg** (instalado para la conversión automática de MP3 a WAV).
+*   **yt-dlp** (instalado localmente en tu sistema para la extracción estable de YouTube, ej: `/home/juan/.local/share/bin/yt-dlp`).
 *   **Clave de API de Gemini:** Se requiere una `GEMINI_API_KEY` gratuita que podés obtener en [Google AI Studio](https://aistudio.google.com/api-keys).
 
 #### Configuración del Entorno
@@ -68,26 +73,31 @@ La aplicación trabaja combinando la robustez de Node.js en el backend, la inter
 
 ```mermaid
 graph TD
-    A[Cliente: index.html / app.js] -->|Sube MP3| B[Servidor: server.js]
-    B -->|Llama FFmpeg| C[WAV a 16kHz mono]
-    C -->|Llama Whisper.cpp| D[Binario whisper-cli + Modelo Whisper]
-    D -->|Genera transcripción| E[Archivo .txt temporal]
-    E -->|Lee y Limpia| B
-    B -->|Devuelve JSON| A
-    A -->|Pide Formateo de IA| B
-    B -->|Llama HTTPS| F[API Externa de Google Gemini]
-    F -->|Modelo gemini-2.5-flash| B
-    B -->|Devuelve Nota en Markdown| A
+    A1[Subir MP3 Local] -->|Carga Multer| B[Servidor: server.js]
+    A2[Pegar URL YouTube] -->|Llamada yt-dlp| B
+    B -->|Extrae Audio YouTube| C1[Audio MP3 temporal]
+    C1 -->|Llama FFmpeg| D[WAV a 16kHz mono]
+    B -->|Llama FFmpeg en MP3 local| D
+    D -->|Llama Whisper.cpp| E[Binario whisper-cli + Modelo Whisper]
+    E -->|Genera transcripción| F[Archivo .txt temporal]
+    F -->|Lee y Limpia| B
+    B -->|Devuelve JSON con metadatos| A3[Cliente: index.html / app.js]
+    A3 -->|Pide Formateo de IA| B
+    B -->|Llama HTTPS| G[API Externa de Google Gemini]
+    G -->|Modelo gemini-2.5-flash| B
+    B -->|Devuelve Nota en Markdown| A3
 ```
 
-1.  **Conversión:** Whisper requiere archivos WAV a 16kHz mono de 16-bit. Al subir un MP3, el servidor ejecuta automáticamente **FFmpeg** para realizar esta conversión en segundo plano.
-2.  **Transcripción:** El backend invoca al binario nativo `./whisper.cpp/build/bin/whisper-cli` pasándole el audio WAV y el modelo de Whisper seleccionado.
-3.  **Procesamiento de IA:** Al hacer clic en "Estructurar y Traducir con IA", el texto crudo es enviado a la API HTTPS de Google Gemini (`generativelanguage.googleapis.com`) usando el modelo de inferencia ultrarrápido y preciso `gemini-2.5-flash`, devolviendo una respuesta completamente estructurada.
+1.  **Extracción remota:** Si introducís un enlace de YouTube, el backend ejecuta la utilidad local **`yt-dlp`** para obtener los metadatos JSON e iniciar la descarga y extracción directa del audio en formato MP3 temporal.
+2.  **Conversión:** Whisper requiere archivos WAV a 16kHz mono de 16-bit. El servidor ejecuta automáticamente **FFmpeg** para realizar esta conversión en segundo plano para ambas fuentes.
+3.  **Transcripción:** El backend invoca al binario nativo `./whisper.cpp/build/bin/whisper-cli` pasándole el audio WAV y el modelo de Whisper seleccionado.
+4.  **Procesamiento de IA:** Al hacer clic en "Estructurar y Traducir con IA", el texto crudo es enviado a la API HTTPS de Google Gemini (`generativelanguage.googleapis.com`) usando el modelo de inferencia ultrarrápido y preciso `gemini-2.5-flash`, devolviendo una respuesta completamente estructurada.
 
 ---
 
 ### 4. 📝 Uso y Accesibilidad
 
 *   **Carga de Archivos:** Podés arrastrar un archivo MP3 directamente a la pantalla o presionar `Tab` hasta seleccionar el botón de selección de archivos y presionar `Enter`.
+*   **Descarga de YouTube:** Pegá el enlace del video, seleccioná el modelo Whisper deseado y hacé clic en "Descargar y Transcribir". La interfaz se bloqueará de forma interactiva e informará de cada etapa del progreso.
 *   **Navegación Interactiva:** Todos los botones, campos de texto y el selector de modelos tienen un reborde celeste vibrante de alta visibilidad al ser enfocados por teclado.
 *   **Switch de Tema:** El switch de tema se encuentra en la cabecera, operable y persistente, facilitando el cambio de modo claro a oscuro en un clic o pulsando espacio.
