@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
 const https = require('https');
+const ytdl = require('@distube/ytdl-core');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -140,6 +141,192 @@ app.post('/transcribe', upload.single('audio'), (req, res) => {
       });
     });
   });
+});
+
+// Ruta para descargar audio de YouTube y transcribir
+app.post('/transcribe-youtube', async (req, res) => {
+  const { url, model } = req.body;
+
+  if (!url || !ytdl.validateURL(url)) {
+    return res.status(400).json({ error: 'Proporcioná una URL de YouTube válida.' });
+  }
+
+  const tempId = Date.now();
+  const mp3Path = path.join(__dirname, 'uploads', `yt-${tempId}.mp3`);
+  const wavPath = path.join(__dirname, 'uploads', `audio-${tempId}.wav`);
+  const outputBase = path.join(__dirname, 'uploads', `transcription-${tempId}`);
+  const outputTxtPath = `${outputBase}.txt`;
+
+  let currentFFmpegProcess = null;
+  let currentWhisperProcess = null;
+  let downloadWriteStream = null;
+  let requestAborted = false;
+  let videoTitle = 'Video de YouTube';
+  let channelName = 'Desconocido';
+  let videoDurationStr = 'Desconocida';
+
+  console.log(`[${new Date().toLocaleTimeString()}] Recibida solicitud de transcripción para YouTube: ${url}`);
+
+  // Escuchar evento de cierre de petición (cancelación del cliente)
+  req.on('close', () => {
+    if (!requestAborted) {
+      requestAborted = true;
+      console.log(`[${new Date().toLocaleTimeString()}] ⏹️ Petición de YouTube cancelada por el cliente. Abortando procesos...`);
+
+      if (downloadWriteStream) {
+        try {
+          downloadWriteStream.destroy();
+          console.log('[Cancelación] Descarga de YouTube cancelada.');
+        } catch (err) {
+          console.error('[Cancelación] Error al abortar descarga de YouTube:', err.message);
+        }
+      }
+
+      if (currentFFmpegProcess) {
+        try {
+          currentFFmpegProcess.kill('SIGKILL');
+          console.log('[Cancelación] Proceso FFmpeg abortado con éxito.');
+        } catch (err) {
+          console.error('[Cancelación] Error al abortar FFmpeg:', err.message);
+        }
+      }
+
+      if (currentWhisperProcess) {
+        try {
+          currentWhisperProcess.kill('SIGKILL');
+          console.log('[Cancelación] Proceso Whisper abortado con éxito.');
+        } catch (err) {
+          console.error('[Cancelación] Error al abortar Whisper:', err.message);
+        }
+      }
+
+      cleanupFiles([mp3Path, wavPath, outputTxtPath]);
+    }
+  });
+
+  try {
+    // 1. Obtener metadatos e info del video
+    console.log(`[${new Date().toLocaleTimeString()}] Obteniendo metadatos del video...`);
+    const info = await ytdl.getInfo(url);
+    videoTitle = info.videoDetails.title;
+    channelName = info.videoDetails.author.name;
+    
+    // Formatear duración (segundos a mm:ss o hh:mm:ss)
+    const durationSeconds = parseInt(info.videoDetails.lengthSeconds, 10) || 0;
+    if (durationSeconds > 0) {
+      const hrs = Math.floor(durationSeconds / 3600);
+      const mins = Math.floor((durationSeconds % 3600) / 60);
+      const secs = durationSeconds % 60;
+      videoDurationStr = hrs > 0 
+        ? `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+        : `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    console.log(`[${new Date().toLocaleTimeString()}] Video identificado: "${videoTitle}" (${videoDurationStr})`);
+
+    if (requestAborted) return;
+
+    // 2. Descargar audio de YouTube
+    console.log(`[${new Date().toLocaleTimeString()}] Iniciando descarga de audio en formato MP3 temporal...`);
+    const downloadStream = ytdl(url, {
+      quality: 'highestaudio',
+      filter: 'audioonly'
+    });
+
+    downloadWriteStream = fs.createWriteStream(mp3Path);
+    downloadStream.pipe(downloadWriteStream);
+
+    downloadWriteStream.on('finish', () => {
+      downloadWriteStream = null;
+      if (requestAborted) return;
+
+      console.log(`[${new Date().toLocaleTimeString()}] Descarga finalizada con éxito. Iniciando conversión a WAV...`);
+
+      // 3. Convertir MP3 a WAV a 16kHz mono con FFmpeg
+      const ffmpegCmd = `ffmpeg -i "${mp3Path}" -ar 16000 -ac 1 -c:a pcm_s16le "${wavPath}" -y`;
+      
+      currentFFmpegProcess = exec(ffmpegCmd, (ffmpegErr, stdout, stderr) => {
+        currentFFmpegProcess = null;
+        if (requestAborted) return;
+
+        if (ffmpegErr) {
+          console.error('Error al convertir audio de YouTube con FFmpeg:', ffmpegErr);
+          cleanupFiles([mp3Path, wavPath]);
+          return res.status(500).json({ error: 'Error interno en la conversión de audio descargado.' });
+        }
+
+        let selectedModel = 'ggml-small.bin';
+        let modelName = 'Small';
+        if (model === 'base') {
+          selectedModel = 'ggml-base.bin';
+          modelName = 'Base';
+        } else if (model === 'medium') {
+          selectedModel = 'ggml-medium.bin';
+          modelName = 'Medium';
+        }
+        console.log(`[${new Date().toLocaleTimeString()}] Conversión completada. Ejecutando Whisper local con modelo ${modelName}...`);
+
+        // 4. Ejecutar Whisper.cpp local
+        const whisperBin = path.join(__dirname, 'whisper.cpp', 'build', 'bin', 'whisper-cli');
+        const modelPath = path.join(__dirname, 'whisper.cpp', 'models', selectedModel);
+        const whisperCmd = `"${whisperBin}" -m "${modelPath}" -f "${wavPath}" -l es -otxt -of "${outputBase}"`;
+
+        currentWhisperProcess = exec(whisperCmd, (whisperErr, whisperStdout, whisperStderr) => {
+          currentWhisperProcess = null;
+          if (requestAborted) return;
+
+          if (whisperErr) {
+            console.error('Error al transcribir video de YouTube con Whisper:', whisperErr);
+            cleanupFiles([mp3Path, wavPath, outputTxtPath]);
+            return res.status(500).json({ error: 'Error en el motor local de transcripción al procesar YouTube.' });
+          }
+
+          console.log(`[${new Date().toLocaleTimeString()}] Transcripción completada exitosamente.`);
+
+          // 5. Leer texto y formatear resultado
+          fs.readFile(outputTxtPath, 'utf8', (readErr, data) => {
+            if (requestAborted) return;
+
+            // Limpiar archivos temporales
+            cleanupFiles([mp3Path, wavPath, outputTxtPath]);
+
+            if (readErr) {
+              console.error('Error al leer el archivo de transcripción de YouTube:', readErr);
+              return res.status(500).json({ error: 'Error al recuperar la transcripción del video.' });
+            }
+
+            // Construir cabecera en Markdown premium
+            const cabeceraMarkdown = `# 📺 Transcripción: ${videoTitle}\n` +
+                                     `*   **Canal:** ${channelName}\n` +
+                                     `*   **Enlace Original:** [Ver en YouTube](${url})\n` +
+                                     `*   **Duración:** ${videoDurationStr}\n\n` +
+                                     `--- \n\n` +
+                                     data.trim();
+
+            res.json({
+              transcription: cabeceraMarkdown,
+              title: videoTitle
+            });
+          });
+        });
+      });
+    });
+
+    downloadStream.on('error', (err) => {
+      console.error('Error en el streaming de descarga de YouTube:', err);
+      cleanupFiles([mp3Path, wavPath]);
+      if (!res.headersSent) {
+        res.status(502).json({ error: 'No se pudo descargar el audio desde los servidores de YouTube. Comprobá el enlace.' });
+      }
+    });
+
+  } catch (err) {
+    console.error('Error al procesar la descarga de YouTube:', err);
+    cleanupFiles([mp3Path, wavPath]);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Ocurrió un error inesperado al intentar conectarse con YouTube.' });
+    }
+  }
 });
 
 // Función de utilidad para eliminar archivos temporales

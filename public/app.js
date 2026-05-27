@@ -38,7 +38,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const downloadAiBtn = document.getElementById('download-ai-btn');
   const aiText = document.getElementById('ai-text');
   
+  // Elementos de la Sección de YouTube
+  const youtubeUrlInput = document.getElementById('youtube-url');
+  const youtubeBtn = document.getElementById('youtube-btn');
+  const modelSelect = document.getElementById('model-select');
+  const youtubeSectionCard = document.querySelector('.youtube-section');
+  
   let selectedFile = null;
+  let youtubeVideoTitle = '';
   let transcribeAbortController = null;
   let aiAbortController = null;
   let progressInterval = null;
@@ -247,9 +254,138 @@ document.addEventListener('DOMContentLoaded', () => {
       clearInterval(progressInterval);
     }
     
+    // Habilitar elementos nuevamente
+    dropZone.classList.remove('disabled-element');
+    youtubeSectionCard.classList.remove('disabled-element');
+    if (modelSelect) modelSelect.classList.remove('disabled-element');
+    
     progressSection.classList.add('d-none');
-    fileInfo.classList.remove('d-none');
+    if (selectedFile) {
+      fileInfo.classList.remove('d-none');
+    } else {
+      dropZone.classList.remove('d-none');
+    }
   });
+
+  // --- TRANSCRIPCIÓN DESDE YOUTUBE ---
+  if (youtubeBtn) {
+    youtubeBtn.addEventListener('click', async () => {
+      const url = youtubeUrlInput.value.trim();
+      if (!url) {
+        alert('Por favor, ingresá una URL de YouTube.');
+        return;
+      }
+
+      // Validar formato básico de URL
+      if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+        alert('Por favor, ingresá una URL válida de YouTube.');
+        return;
+      }
+
+      const selectedModel = modelSelect ? modelSelect.value : 'small';
+
+      // Deshabilitar los formularios de subida para evitar concurrencia
+      dropZone.classList.add('disabled-element');
+      youtubeSectionCard.classList.add('disabled-element');
+      if (modelSelect) modelSelect.classList.add('disabled-element');
+
+      // Ocultar info de archivos si hubiera y mostrar sección de progreso
+      fileInfo.classList.add('d-none');
+      dropZone.classList.add('d-none');
+      progressSection.classList.remove('d-none');
+
+      // Iniciar barra de progreso inteligente simulada para YouTube
+      let progress = 0;
+      progressBar.style.width = '0%';
+      progressBar.setAttribute('aria-valuenow', 0);
+      progressPercent.textContent = '0%';
+      progressStatus.textContent = 'Obteniendo metadatos del video...';
+
+      transcribeAbortController = new AbortController();
+
+      progressInterval = setInterval(() => {
+        if (progress < 90) {
+          const increment = (90 - progress) * 0.04;
+          progress += Math.max(0.4, increment);
+          const displayProgress = Math.round(progress);
+
+          progressBar.style.width = `${displayProgress}%`;
+          progressBar.setAttribute('aria-valuenow', displayProgress);
+          progressPercent.textContent = `${displayProgress}%`;
+
+          if (progress > 5 && progress < 30) {
+            progressStatus.textContent = 'Descargando audio de YouTube en el servidor...';
+          } else if (progress >= 30 && progress < 55) {
+            progressStatus.textContent = 'Convirtiendo pista de audio con FFmpeg...';
+          } else if (progress >= 55 && progress < 85) {
+            progressStatus.textContent = `Transcribiendo con Whisper local (Modelo ${selectedModel === 'base' ? 'Base' : selectedModel === 'small' ? 'Small' : 'Medium'})...`;
+          } else if (progress >= 85) {
+            progressStatus.textContent = 'Estructurando transcripción. Casi listo...';
+          }
+        }
+      }, 1500);
+
+      try {
+        const response = await fetch('/transcribe-youtube', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ url, model: selectedModel }),
+          signal: transcribeAbortController.signal
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Ocurrió un error al procesar el video de YouTube.');
+        }
+
+        const result = await response.json();
+
+        // Completar barra
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+        progressBar.setAttribute('aria-valuenow', 100);
+        progressPercent.textContent = '100%';
+        progressStatus.textContent = '¡Video transcrito con éxito!';
+
+        // Guardar título de video
+        youtubeVideoTitle = result.title || '';
+
+        setTimeout(() => {
+          progressSection.classList.add('d-none');
+          resultSection.classList.remove('d-none');
+
+          // Habilitar elementos nuevamente
+          dropZone.classList.remove('disabled-element');
+          youtubeSectionCard.classList.remove('disabled-element');
+          if (modelSelect) modelSelect.classList.remove('disabled-element');
+
+          // Cargar transcripción
+          rawTranscriptionText = result.transcription;
+          transcriptionText.innerHTML = escapeHtml(rawTranscriptionText);
+          transcriptionText.focus();
+        }, 800);
+
+      } catch (error) {
+        clearInterval(progressInterval);
+
+        // Habilitar elementos nuevamente
+        dropZone.classList.remove('disabled-element');
+        youtubeSectionCard.classList.remove('disabled-element');
+        if (modelSelect) modelSelect.classList.remove('disabled-element');
+
+        if (error.name === 'AbortError') {
+          console.log('[Cliente] Transcripción de YouTube abortada por el usuario.');
+          return;
+        }
+
+        progressSection.classList.add('d-none');
+        dropZone.classList.remove('d-none');
+        alert(`Error de YouTube: ${error.message}`);
+      }
+    });
+  }
 
   // Sanitizar HTML para inyectar seguro
   function escapeHtml(text) {
@@ -284,33 +420,35 @@ document.addEventListener('DOMContentLoaded', () => {
   // Descarga en Markdown (.md)
   downloadBtn.addEventListener('click', () => {
     const text = transcriptionText.textContent;
-    const audioName = selectedFile ? selectedFile.name : 'audio.mp3';
     
     // Generar formato Markdown hermoso y estructurado
     const modelSelect = document.getElementById('model-select');
     const selectedModel = modelSelect ? modelSelect.value : 'medium';
     const modelLabel = selectedModel === 'base' ? 'Base' : selectedModel === 'small' ? 'Small' : 'Medium';
     
-    const markdownContent = `# 🎙️ Transcripción: ${audioName}
-
-Documento generado automáticamente de forma 100% local por la aplicación **Talkie** utilizando el modelo **Whisper ${modelLabel}**.
-
----
-
-## 📝 Contenido Transcrito
-
-${text}
-
----
-*Fin de la transcripción.*
-`;
+    let markdownContent = '';
+    let baseName = 'transcripcion';
+    
+    if (youtubeVideoTitle) {
+      baseName = youtubeVideoTitle.toLowerCase().replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_').substring(0, 100);
+      markdownContent = text; // Si es YouTube, la cabecera completa ya está inyectada en el crudo
+    } else {
+      const audioName = selectedFile ? selectedFile.name : 'audio.mp3';
+      baseName = audioName.substring(0, audioName.lastIndexOf('.')) || audioName;
+      
+      markdownContent = `# 🎙️ Transcripción: ${audioName}\n\n` +
+                        `Documento generado automáticamente de forma 100% local por la aplicación **Talkie** utilizando el modelo **Whisper ${modelLabel}**.\n\n` +
+                        `--- \n\n` +
+                        `## 📝 Contenido Transcrito\n\n` +
+                        `${text}\n\n` +
+                        `--- \n` +
+                        `*Fin de la transcripción.*\n`;
+    }
 
     const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     
-    // Nombre del archivo de descarga
-    const baseName = audioName.substring(0, audioName.lastIndexOf('.')) || audioName;
     link.href = url;
     link.setAttribute('download', `${baseName}_transcripcion.md`);
     link.style.visibility = 'hidden';
@@ -325,6 +463,17 @@ ${text}
     selectedFile = null;
     audioInput.value = '';
     rawTranscriptionText = '';
+    youtubeVideoTitle = '';
+    if (youtubeUrlInput) {
+      youtubeUrlInput.value = '';
+    }
+    
+    // Habilitar elementos nuevamente
+    dropZone.classList.remove('disabled-element');
+    youtubeSectionCard.classList.remove('disabled-element');
+    if (modelSelect) {
+      modelSelect.classList.remove('disabled-element');
+    }
     
     if (aiAbortController) {
       aiAbortController.abort();
@@ -430,8 +579,14 @@ ${text}
   // Descargar nota estructurada en Markdown (.md)
   downloadAiBtn.addEventListener('click', () => {
     const text = aiText.textContent;
-    const audioName = selectedFile ? selectedFile.name : 'audio.mp3';
-    const baseName = audioName.substring(0, audioName.lastIndexOf('.')) || audioName;
+    let baseName = 'nota_inteligente';
+    
+    if (youtubeVideoTitle) {
+      baseName = youtubeVideoTitle.toLowerCase().replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_').substring(0, 100);
+    } else {
+      const audioName = selectedFile ? selectedFile.name : 'audio.mp3';
+      baseName = audioName.substring(0, audioName.lastIndexOf('.')) || audioName;
+    }
 
     const blob = new Blob([text], { type: 'text/markdown;charset=utf-8;' });
     const url = URL.createObjectURL(blob);

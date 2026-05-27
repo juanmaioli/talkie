@@ -78,6 +78,31 @@
             <input type="file" id="audio-input" accept="audio/mpeg, audio/mp3" class="d-none">
           </div>
 
+          <!-- Separación visual opcional -->
+          <div class="d-flex align-items-center my-4">
+            <hr class="flex-grow-1 border-secondary-subtle">
+            <span class="px-3 text-secondary small text-uppercase fw-semibold select-none">o transcribir desde enlace web</span>
+            <hr class="flex-grow-1 border-secondary-subtle">
+          </div>
+
+          <!-- Sección de pegado de URL de YouTube -->
+          <div class="youtube-section text-start bg-dark-subtle p-4 rounded-4 border border-secondary">
+            <h3 class="h5 fw-semibold text-light mb-3 d-flex align-items-center gap-2">
+              <span aria-hidden="true">📺</span> Transcribir desde YouTube
+            </h3>
+            <p class="text-secondary small mb-3">Pegá el enlace de cualquier video de YouTube. Descargaremos el audio y lo transcribiremos localmente de forma segura y privada.</p>
+            
+            <div class="mb-3">
+              <label for="youtube-url" class="form-label visually-hidden">URL del video de YouTube</label>
+              <input type="url" id="youtube-url" class="form-control bg-dark text-light border-secondary rounded-pill px-4 py-3" placeholder="Ej: https://www.youtube.com/watch?v=..." aria-label="Pegar enlace de video de YouTube aquí">
+            </div>
+            
+            <button id="youtube-btn" class="btn btn-primary rounded-pill px-4 py-3 w-100 d-flex align-items-center justify-content-center gap-2 fw-semibold mt-3">
+              <span>Descargar y Transcribir</span>
+              <span class="fs-6" aria-hidden="true">📥</span>
+            </button>
+          </div>
+
           <!-- Información del archivo seleccionado -->
           <div id="file-info" class="mt-4 p-3 bg-dark-subtle rounded-3 d-none border border-secondary flex-wrap justify-content-between align-items-center text-start gap-3">
             <div class="d-flex align-items-center gap-3">

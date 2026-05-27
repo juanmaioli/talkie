@@ -273,3 +273,35 @@ h1, h2, h3, h4, h5, h6 {
   outline-offset: -2px !important;
   border-radius: 4px 4px 0 0;
 }
+
+/* Sección interactiva de YouTube */
+.youtube-section {
+  background: var(--dropzone-bg) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: 0 4px 15px var(--shadow-intensity);
+  transition: all 0.3s ease;
+}
+
+.youtube-section:hover {
+  border-color: rgba(129, 140, 248, 0.2) !important;
+  box-shadow: 0 8px 25px var(--shadow-hover-intensity);
+}
+
+/* Foco de alta visibilidad para el input de URL de YouTube */
+#youtube-url:focus {
+  border-color: var(--focus-ring-color) !important;
+  box-shadow: 0 0 0 var(--focus-ring-width) rgba(56, 189, 248, 0.25) !important;
+  outline: none !important;
+}
+
+#youtube-url:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color) !important;
+  outline-offset: 2px !important;
+}
+
+/* Estado deshabilitado para formularios */
+.disabled-element {
+  pointer-events: none !important;
+  opacity: 0.45 !important;
+  user-select: none !important;
+}
