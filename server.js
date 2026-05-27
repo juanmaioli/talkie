@@ -107,9 +107,13 @@ app.post('/transcribe', upload.single('audio'), (req, res) => {
     // 2. Ejecutar Whisper.cpp local con el modelo seleccionado
     const whisperBin = path.join(__dirname, 'whisper.cpp', 'build', 'bin', 'whisper-cli');
     const modelPath = path.join(__dirname, 'whisper.cpp', 'models', selectedModel);
+    const whisperLibPath = path.join(__dirname, 'whisper.cpp', 'build', 'src');
+    const ggmlLibPath = path.join(__dirname, 'whisper.cpp', 'build', 'ggml', 'src');
+    const ldLibraryPath = `${whisperLibPath}:${ggmlLibPath}`;
     
     // Fuerza el español (-l es) y descarta metadatos de marcas de tiempo en el output TXT por simplicidad (-otxt)
-    const whisperCmd = `"${whisperBin}" -m "${modelPath}" -f "${wavPath}" -l es -otxt -of "${outputBase}"`;
+    // Inyecta LD_LIBRARY_PATH para que el ejecutable encuentre libwhisper.so.1 y libggml.so.0 en tiempo de ejecución
+    const whisperCmd = `LD_LIBRARY_PATH="${ldLibraryPath}" "${whisperBin}" -m "${modelPath}" -f "${wavPath}" -l es -otxt -of "${outputBase}"`;
 
     currentWhisperProcess = exec(whisperCmd, (whisperErr, whisperStdout, whisperStderr) => {
       currentWhisperProcess = null;
@@ -233,7 +237,12 @@ app.post('/transcribe-youtube', (req, res) => {
         // 4. Ejecutar Whisper.cpp local
         const whisperBin = path.join(__dirname, 'whisper.cpp', 'build', 'bin', 'whisper-cli');
         const modelPath = path.join(__dirname, 'whisper.cpp', 'models', selectedModel);
-        const whisperCmd = `"${whisperBin}" -m "${modelPath}" -f "${wavPath}" -l es -otxt -of "${outputBase}"`;
+        const whisperLibPath = path.join(__dirname, 'whisper.cpp', 'build', 'src');
+        const ggmlLibPath = path.join(__dirname, 'whisper.cpp', 'build', 'ggml', 'src');
+        const ldLibraryPath = `${whisperLibPath}:${ggmlLibPath}`;
+        
+        // Inyecta LD_LIBRARY_PATH para evitar errores de enlace dinámico de libwhisper.so.1 y libggml.so.0
+        const whisperCmd = `LD_LIBRARY_PATH="${ldLibraryPath}" "${whisperBin}" -m "${modelPath}" -f "${wavPath}" -l es -otxt -of "${outputBase}"`;
 
         exec(whisperCmd, (whisperErr, whisperStdout, whisperStderr) => {
           if (whisperErr) {

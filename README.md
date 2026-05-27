@@ -18,6 +18,7 @@ La interfaz de usuario fue diseñada bajo estrictas directrices de **accesibilid
     *   **Modelo Base (140 MB):** Ultra rápido (unas 10 veces más veloz), ideal para audios muy extensos o transcripciones inmediatas.
     *   **Modelo Small (460 MB):** Equilibrado (predeterminado). Ofrece un balance ideal de rendimiento de CPU y precisión.
     *   **Modelo Medium (1.5 GB):** Precisión lingüística máxima en español, ideal para fidelidad extrema en audios cortos y medianos.
+    *   **Enlace Dinámico Robusto:** Resolución automática de dependencias dinámicas locales (`libwhisper.so.1` y `libggml.so.0`) en sistemas Linux mediante la inyección directa de la variable de entorno `LD_LIBRARY_PATH` en cada llamada del backend.
 *   **Notas Inteligentes con Google Gemini (Bajo Demanda):**
     *   Conexión directa mediante HTTPS a la API externa de **Google Gemini** utilizando el modelo superveloz `gemini-2.5-flash`.
     *   Traducción y adaptación automática al **español de Argentina (es_AR)** de cualquier transcripción.
