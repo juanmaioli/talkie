@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const cors = require('cors');
@@ -155,38 +156,38 @@ function cleanupFiles(paths) {
   });
 }
 
-// Endpoint para estructurar y traducir con Ollama (IA) bajo demanda
+// Endpoint para estructurar y traducir con la API de Google Gemini (IA) bajo demanda
 app.post('/format-ai', (req, res) => {
   const { text } = req.body;
   if (!text || text.trim() === '') {
     return res.status(400).json({ error: 'No se proporcionó texto para formatear.' });
   }
 
-  let requestAborted = false;
-  let ollamaReq = null;
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey.trim() === '') {
+    console.error(`[${new Date().toLocaleTimeString()}] ❌ Error: GEMINI_API_KEY no configurada en el archivo .env`);
+    return res.status(500).json({ error: 'La clave de API de Gemini (GEMINI_API_KEY) no está configurada en el archivo .env del servidor.' });
+  }
 
-  console.log(`[${new Date().toLocaleTimeString()}] Recibida solicitud de formateo inteligente con IA.`);
+  let requestAborted = false;
+  let geminiReq = null;
+
+  console.log(`[${new Date().toLocaleTimeString()}] Recibida solicitud de formateo inteligente con Google Gemini.`);
 
   // Escuchar cancelación del cliente
   req.on('close', () => {
     if (!requestAborted) {
       requestAborted = true;
-      console.log(`[${new Date().toLocaleTimeString()}] ⏹️ Petición de IA cancelada por el cliente. Abortando solicitud a Ollama...`);
-      if (ollamaReq) {
+      console.log(`[${new Date().toLocaleTimeString()}] ⏹️ Petición de IA cancelada por el cliente. Abortando solicitud a Gemini...`);
+      if (geminiReq) {
         try {
-          ollamaReq.destroy();
-          console.log('[Cancelación] Solicitud a Ollama abortada con éxito.');
+          geminiReq.destroy();
+          console.log('[Cancelación] Solicitud a Gemini abortada con éxito.');
         } catch (err) {
-          console.error('[Cancelación] Error al abortar la solicitud a Ollama:', err.message);
+          console.error('[Cancelación] Error al abortar la solicitud a Gemini:', err.message);
         }
       }
     }
-  });
-
-  // Agente HTTPS que ignora certificados locales autofirmados y discrepancias de nombres de host
-  const agent = new https.Agent({
-    rejectUnauthorized: false,
-    checkServerIdentity: () => undefined
   });
 
   // Prompt en español de Argentina estricto y estructurado de acuerdo con la elección del usuario
@@ -204,68 +205,73 @@ Texto original a procesar:
 "${text}"`;
 
   const postData = JSON.stringify({
-    model: 'gemma4:latest',
-    prompt: promptDefinido,
-    stream: false
+    contents: [{
+      parts: [{
+        text: promptDefinido
+      }]
+    }]
   });
 
   const options = {
-    hostname: 'drawers.docker',
-    port: 11434,
-    path: '/api/generate',
+    hostname: 'generativelanguage.googleapis.com',
+    port: 443,
+    path: `/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Content-Length': Buffer.byteLength(postData)
     },
-    agent: agent,
-    timeout: 120000 // Timeout de 2 minutos para procesamiento de LLM
+    timeout: 60000 // Timeout de 1 minuto para llamada a la API
   };
 
-  console.log(`[${new Date().toLocaleTimeString()}] Enviando prompt a Ollama en drawers.docker:11434 con el modelo 'gemma4:latest'...`);
+  console.log(`[${new Date().toLocaleTimeString()}] Enviando prompt a Google Gemini (gemini-2.5-flash)...`);
 
-  ollamaReq = https.request(options, (ollamaRes) => {
+  geminiReq = https.request(options, (geminiRes) => {
     let rawData = '';
 
-    ollamaRes.on('data', (chunk) => {
+    geminiRes.on('data', (chunk) => {
       rawData += chunk;
     });
 
-    ollamaRes.on('end', () => {
+    geminiRes.on('end', () => {
       if (requestAborted) return;
 
-      if (ollamaRes.statusCode >= 400) {
-        console.error(`Ollama respondió con código de estado ${ollamaRes.statusCode}`);
-        return res.status(502).json({ error: `Ollama local devolvió un error (Código: ${ollamaRes.statusCode}).` });
+      if (geminiRes.statusCode >= 400) {
+        console.error(`Google Gemini respondió con código de estado ${geminiRes.statusCode}`);
+        try {
+          const errObj = JSON.parse(rawData);
+          console.error('Detalle del error de Gemini:', JSON.stringify(errObj));
+        } catch (e) {}
+        return res.status(502).json({ error: `La API de Google Gemini devolvió un error (Código: ${geminiRes.statusCode}).` });
       }
 
       try {
         const parsed = JSON.parse(rawData);
-        const formattedText = parsed.response;
-        console.log(`[${new Date().toLocaleTimeString()}] Nota estructurada generada exitosamente por la IA.`);
+        const formattedText = parsed.candidates[0].content.parts[0].text;
+        console.log(`[${new Date().toLocaleTimeString()}] Nota estructurada generada exitosamente por Gemini.`);
         res.json({ formattedText });
       } catch (err) {
-        console.error('Error al parsear la respuesta JSON de Ollama:', err);
-        res.status(502).json({ error: 'La respuesta de Ollama no pudo ser procesada.' });
+        console.error('Error al parsear la respuesta JSON de Gemini:', err);
+        res.status(502).json({ error: 'La respuesta de Google Gemini no pudo ser procesada.' });
       }
     });
   });
 
-  ollamaReq.on('error', (err) => {
+  geminiReq.on('error', (err) => {
     if (requestAborted) return;
-    console.error('Error de red al conectar con Ollama:', err);
-    res.status(502).json({ error: 'No se pudo establecer conexión con Ollama en https://drawers.docker:11434. Asegurate de que el contenedor Docker esté corriendo.' });
+    console.error('Error de red al conectar con Google Gemini:', err);
+    res.status(502).json({ error: 'No se pudo establecer conexión de red con los servidores de Google Gemini. Comprobá tu conexión a internet.' });
   });
 
-  ollamaReq.on('timeout', () => {
+  geminiReq.on('timeout', () => {
     if (requestAborted) return;
-    console.log(`[${new Date().toLocaleTimeString()}] ⏱️ La solicitud a Ollama ha excedido el tiempo de espera.`);
-    ollamaReq.destroy();
-    res.status(504).json({ error: 'La solicitud a Ollama excedió el tiempo límite de espera.' });
+    console.log(`[${new Date().toLocaleTimeString()}] ⏱️ La solicitud a Google Gemini ha excedido el tiempo de espera.`);
+    geminiReq.destroy();
+    res.status(504).json({ error: 'La solicitud a Google Gemini excedió el tiempo límite de espera.' });
   });
 
-  ollamaReq.write(postData);
-  ollamaReq.end();
+  geminiReq.write(postData);
+  geminiReq.end();
 });
 
 // Iniciar servidor
