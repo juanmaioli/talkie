@@ -16,3 +16,4 @@ GEMINI.md
 .gemini/
 .DS_Store
 *.log
+.dev/

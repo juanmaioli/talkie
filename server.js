@@ -156,7 +156,8 @@ function cleanupFiles(paths) {
   });
 }
 
-// Endpoint para estructurar y traducir con la API de Googleapp.post('/format-ai', (req, res) => {
+// Endpoint para estructurar y traducir con la API de Google
+app.post('/format-ai', (req, res) => {
   const { text } = req.body;
   if (!text || text.trim() === '') {
     return res.status(400).json({ error: 'No se proporcionó texto para formatear.' });
