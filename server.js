@@ -160,49 +160,12 @@ app.post('/transcribe-youtube', async (req, res) => {
   let currentFFmpegProcess = null;
   let currentWhisperProcess = null;
   let downloadWriteStream = null;
-  let requestAborted = false;
+  const requestAborted = false;
   let videoTitle = 'Video de YouTube';
   let channelName = 'Desconocido';
   let videoDurationStr = 'Desconocida';
 
   console.log(`[${new Date().toLocaleTimeString()}] Recibida solicitud de transcripción para YouTube: ${url}`);
-
-  // Escuchar evento de cierre de petición (cancelación del cliente)
-  req.on('close', () => {
-    if (!requestAborted) {
-      requestAborted = true;
-      console.log(`[${new Date().toLocaleTimeString()}] ⏹️ Petición de YouTube cancelada por el cliente. Abortando procesos...`);
-
-      if (downloadWriteStream) {
-        try {
-          downloadWriteStream.destroy();
-          console.log('[Cancelación] Descarga de YouTube cancelada.');
-        } catch (err) {
-          console.error('[Cancelación] Error al abortar descarga de YouTube:', err.message);
-        }
-      }
-
-      if (currentFFmpegProcess) {
-        try {
-          currentFFmpegProcess.kill('SIGKILL');
-          console.log('[Cancelación] Proceso FFmpeg abortado con éxito.');
-        } catch (err) {
-          console.error('[Cancelación] Error al abortar FFmpeg:', err.message);
-        }
-      }
-
-      if (currentWhisperProcess) {
-        try {
-          currentWhisperProcess.kill('SIGKILL');
-          console.log('[Cancelación] Proceso Whisper abortado con éxito.');
-        } catch (err) {
-          console.error('[Cancelación] Error al abortar Whisper:', err.message);
-        }
-      }
-
-      cleanupFiles([mp3Path, wavPath, outputTxtPath]);
-    }
-  });
 
   try {
     // 1. Obtener metadatos e info del video
