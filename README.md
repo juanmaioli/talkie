@@ -26,6 +26,7 @@ La interfaz de usuario fue diseñada bajo estrictas directrices de **accesibilid
 *   **Alta Accesibilidad:** 
     *   Doble tema (oscuro/claro) persistido en `localStorage` con switch de emojis (`☀️`/`🌙`) y transiciones suaves.
     *   Navegabilidad 100% operable por teclado con focos visuales celeste de alta visibilidad (3px con offset) y etiquetas semánticas ARIA.
+    *   **Interfaz Optimizada:** Reducción del ruido cognitivo mediante la eliminación de textos redundantes y simplificación del tamaño vertical en la zona de arrastre (`drop-zone`), optimizando la navegación para personas que utilizan lectores de pantalla.
 *   **Herramientas Rápidas:**
     *   Pestañas dinámicas de Bootstrap 5.3 para alternar entre "Transcripción Cruda" y "Nota Inteligente con IA" de forma ágil.
     *   Copiado rápido al portapapeles y descargas independientes en Markdown con el sufijo `_transcripcion.md` y `_nota_inteligente.md`.
