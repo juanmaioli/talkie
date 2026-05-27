@@ -389,10 +389,36 @@ Texto original a procesar:
   }
 });
 
-// Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`==================================================`);
-  console.log(`🎙️  Servidor de Talkie iniciado exitosamente`);
-  console.log(`🔗  Disponible localmente en: http://localhost:${PORT}`);
-  console.log(`==================================================`);
-});
+// Iniciar servidor seguro HTTPS con certificados SSL de .dev
+let sslOptions = null;
+try {
+  const keyPath = path.join(__dirname, '.dev', 'apache.key');
+  const certPath = path.join(__dirname, '.dev', 'apache.crt');
+  
+  if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    sslOptions = {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath)
+    };
+    console.log(`[Seguridad] Certificados SSL de .dev cargados con éxito.`);
+  }
+} catch (sslErr) {
+  console.error('[Seguridad] Advertencia al cargar certificados SSL:', sslErr.message);
+}
+
+if (sslOptions) {
+  const httpsServer = https.createServer(sslOptions, app);
+  httpsServer.listen(PORT, () => {
+    console.log(`==================================================`);
+    console.log(`🎙️  Servidor Seguro (HTTPS) de Talkie iniciado`);
+    console.log(`🔗  Disponible en: https://localhost:${PORT}`);
+    console.log(`==================================================`);
+  });
+} else {
+  app.listen(PORT, () => {
+    console.log(`==================================================`);
+    console.log(`🎙️  Servidor de Talkie iniciado (FALLBACK HTTP)`);
+    console.log(`🔗  Disponible en: http://localhost:${PORT}`);
+    console.log(`==================================================`);
+  });
+}

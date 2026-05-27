@@ -54,15 +54,15 @@ GEMINI_API_KEY="TU_CLAVE_DE_API_AQUÍ"
 ```
 
 #### Instrucciones de Ejecución
-Para iniciar el servidor local de desarrollo y acceder desde tu navegador, ejecutá en la raíz del proyecto:
+Para iniciar el servidor seguro local de desarrollo y acceder desde tu navegador, ejecutá en la raíz del proyecto:
 
 ```bash
 npm start
 ```
 
-Una vez ejecutado, abrí tu navegador y navegá a:
+Una vez ejecutado, abrí tu navegador y navegá de forma segura a:
 ```text
-http://localhost:3000
+https://localhost:3000
 ```
 
 ---
