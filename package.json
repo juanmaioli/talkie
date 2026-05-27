@@ -1,6 +1,6 @@
 {
   "name": "talkie",
-  "version": "1.4.2",
+  "version": "1.5.0",
   "description": "Aplicación web accesible de transcripción local de MP3 utilizando Whisper.cpp",
   "main": "server.js",
   "scripts": {

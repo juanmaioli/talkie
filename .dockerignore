@@ -1,0 +1,25 @@
+# Ignorar dependencias locales
+node_modules/
+
+# Ignorar archivos de subidas temporales
+uploads/*
+!uploads/.gitkeep
+
+# Ignorar base de compilación de Whisper (se compila limpio en Docker)
+whisper.cpp/build/
+
+# Ignorar modelos pesados (se montan como volumen de Docker para ahorrar espacio)
+whisper.cpp/models/*.bin
+
+# Ignorar secretos y configuraciones locales
+.env
+.dev/
+.git/
+.gitignore
+.dockerignore
+GEMINI.md
+README.md
+implementation_plan.md
+task.md
+walkthrough.md
+*.log

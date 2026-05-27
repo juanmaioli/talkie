@@ -67,6 +67,19 @@ Una vez ejecutado, abrí tu navegador y navegá de forma segura a:
 https://localhost:3000
 ```
 
+#### Ejecución con Docker (Alternativa Recomendada)
+Si preferís ejecutar la aplicación de forma aislada e independiente en un contenedor seguro sin necesidad de configurar compilaciones locales en tu sistema, podés utilizar Docker.
+
+Asegurate de tener instalados **Docker** y **Docker Compose**, y ejecutá en la raíz del proyecto:
+```bash
+docker compose up -d --build
+```
+
+Esto compilará Whisper.cpp nativamente dentro del contenedor en Alpine y montará tus certificados SSL locales y modelos binarios descargados (`/whisper.cpp/models/`) automáticamente como volúmenes. La aplicación estará disponible de forma segura a través de **HTTPS** en:
+```text
+https://localhost:3000
+```
+
 ---
 
 ### 3. 🛠️ Arquitectura Técnica y Flujo

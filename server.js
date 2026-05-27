@@ -163,7 +163,7 @@ app.post('/transcribe-youtube', (req, res) => {
   const outputBase = path.join(__dirname, 'uploads', `transcription-${tempId}`);
   const outputTxtPath = `${outputBase}.txt`;
 
-  const ytDlpPath = '/home/juan/.local/share/bin/yt-dlp';
+  const ytDlpPath = process.env.YT_DLP_PATH || '/home/juan/.local/share/bin/yt-dlp';
 
   console.log(`[${new Date().toLocaleTimeString()}] Recibida solicitud de transcripción para YouTube con yt-dlp: ${url}`);
 

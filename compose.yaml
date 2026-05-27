@@ -1,0 +1,24 @@
+# Archivo de orquestación de Docker Compose para Talkie
+services:
+  talkie:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: talkie-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      - PORT=3000
+      - YT_DLP_PATH=/usr/bin/yt-dlp
+      # Inyectar la API Key de Gemini desde el archivo .env local de forma segura
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      # Montar la carpeta de modelos del host para evitar descargar los binarios gigantescos (1.5 GB) dentro del contenedor
+      - ./whisper.cpp/models:/app/whisper.cpp/models
+      # Montar las subidas temporales por si deseás inspeccionar o depurar conversiones desde el host
+      - ./uploads:/app/uploads
+      # Montar la carpeta de certificados SSL locales para activar HTTPS nativo de forma segura
+      - ./.dev:/app/.dev:ro
