@@ -156,39 +156,21 @@ function cleanupFiles(paths) {
   });
 }
 
-// Endpoint para estructurar y traducir con la API de Google Gemini (IA) bajo demanda
-app.post('/format-ai', (req, res) => {
+// Endpoint para estructurar y traducir con la API de Googleapp.post('/format-ai', (req, res) => {
   const { text } = req.body;
   if (!text || text.trim() === '') {
     return res.status(400).json({ error: 'No se proporcionó texto para formatear.' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey.trim() === '') {
+  let apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.replace(/^["']|["']$/g, '').trim() : '';
+  if (!apiKey || apiKey === '') {
     console.error(`[${new Date().toLocaleTimeString()}] ❌ Error: GEMINI_API_KEY no configurada en el archivo .env`);
     return res.status(500).json({ error: 'La clave de API de Gemini (GEMINI_API_KEY) no está configurada en el archivo .env del servidor. Obtenela gratis en: https://aistudio.google.com/api-keys' });
   }
 
-  let requestAborted = false;
   let geminiReq = null;
 
   console.log(`[${new Date().toLocaleTimeString()}] Recibida solicitud de formateo inteligente con Google Gemini.`);
-
-  // Escuchar cancelación del cliente
-  req.on('close', () => {
-    if (!requestAborted) {
-      requestAborted = true;
-      console.log(`[${new Date().toLocaleTimeString()}] ⏹️ Petición de IA cancelada por el cliente. Abortando solicitud a Gemini...`);
-      if (geminiReq) {
-        try {
-          geminiReq.destroy();
-          console.log('[Cancelación] Solicitud a Gemini abortada con éxito.');
-        } catch (err) {
-          console.error('[Cancelación] Error al abortar la solicitud a Gemini:', err.message);
-        }
-      }
-    }
-  });
 
   // Prompt en español de Argentina estricto y estructurado de acuerdo con la elección del usuario
   const promptDefinido = `Actuá como un transcriptor profesional y redactor de notas de alta calidad. Tu tarea es procesar el siguiente texto transcrito.
@@ -226,52 +208,53 @@ Texto original a procesar:
 
   console.log(`[${new Date().toLocaleTimeString()}] Enviando prompt a Google Gemini (gemini-2.5-flash)...`);
 
-  geminiReq = https.request(options, (geminiRes) => {
-    let rawData = '';
+  try {
+    geminiReq = https.request(options, (geminiRes) => {
+      let rawData = '';
 
-    geminiRes.on('data', (chunk) => {
-      rawData += chunk;
-    });
+      geminiRes.on('data', (chunk) => {
+        rawData += chunk;
+      });
 
-    geminiRes.on('end', () => {
-      if (requestAborted) return;
+      geminiRes.on('end', () => {
+        if (geminiRes.statusCode >= 400) {
+          console.error(`Google Gemini respondió con código de estado ${geminiRes.statusCode}`);
+          try {
+            const errObj = JSON.parse(rawData);
+            console.error('Detalle del error de Gemini:', JSON.stringify(errObj));
+          } catch (e) {}
+          return res.status(502).json({ error: `La API de Google Gemini devolvió un error (Código: ${geminiRes.statusCode}).` });
+        }
 
-      if (geminiRes.statusCode >= 400) {
-        console.error(`Google Gemini respondió con código de estado ${geminiRes.statusCode}`);
         try {
-          const errObj = JSON.parse(rawData);
-          console.error('Detalle del error de Gemini:', JSON.stringify(errObj));
-        } catch (e) {}
-        return res.status(502).json({ error: `La API de Google Gemini devolvió un error (Código: ${geminiRes.statusCode}).` });
-      }
-
-      try {
-        const parsed = JSON.parse(rawData);
-        const formattedText = parsed.candidates[0].content.parts[0].text;
-        console.log(`[${new Date().toLocaleTimeString()}] Nota estructurada generada exitosamente por Gemini.`);
-        res.json({ formattedText });
-      } catch (err) {
-        console.error('Error al parsear la respuesta JSON de Gemini:', err);
-        res.status(502).json({ error: 'La respuesta de Google Gemini no pudo ser procesada.' });
-      }
+          const parsed = JSON.parse(rawData);
+          const formattedText = parsed.candidates[0].content.parts[0].text;
+          console.log(`[${new Date().toLocaleTimeString()}] Nota estructurada generada exitosamente por Gemini.`);
+          res.json({ formattedText });
+        } catch (err) {
+          console.error('Error al parsear la respuesta JSON de Gemini:', err);
+          res.status(502).json({ error: 'La respuesta de Google Gemini no pudo ser procesada.' });
+        }
+      });
     });
-  });
 
-  geminiReq.on('error', (err) => {
-    if (requestAborted) return;
-    console.error('Error de red al conectar con Google Gemini:', err);
-    res.status(502).json({ error: 'No se pudo establecer conexión de red con los servidores de Google Gemini. Comprobá tu conexión a internet.' });
-  });
+    geminiReq.on('error', (err) => {
+      console.error('Error de red al conectar con Google Gemini:', err);
+      res.status(502).json({ error: 'No se pudo establecer conexión de red con los servidores de Google Gemini. Comprobá tu conexión a internet.' });
+    });
 
-  geminiReq.on('timeout', () => {
-    if (requestAborted) return;
-    console.log(`[${new Date().toLocaleTimeString()}] ⏱️ La solicitud a Google Gemini ha excedido el tiempo de espera.`);
-    geminiReq.destroy();
-    res.status(504).json({ error: 'La solicitud a Google Gemini excedió el tiempo límite de espera.' });
-  });
+    geminiReq.on('timeout', () => {
+      console.log(`[${new Date().toLocaleTimeString()}] ⏱️ La solicitud a Google Gemini ha excedido el tiempo de espera.`);
+      geminiReq.destroy();
+      res.status(504).json({ error: 'La solicitud a Google Gemini excedió el tiempo límite de espera.' });
+    });
 
-  geminiReq.write(postData);
-  geminiReq.end();
+    geminiReq.write(postData);
+    geminiReq.end();
+  } catch (errorSincrono) {
+    console.error('Error síncrono al iniciar la petición HTTPS a Gemini:', errorSincrono);
+    res.status(500).json({ error: 'Ocurrió un error inesperado al formular la conexión con Google Gemini. Verificá la clave de API configurada.' });
+  }
 });
 
 // Iniciar servidor
