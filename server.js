@@ -144,10 +144,12 @@ app.post('/transcribe', upload.single('audio'), (req, res) => {
 });
 
 // Ruta para descargar audio de YouTube y transcribir
-app.post('/transcribe-youtube', async (req, res) => {
+app.post('/transcribe-youtube', (req, res) => {
   const { url, model } = req.body;
 
-  if (!url || !ytdl.validateURL(url)) {
+  // Validación mediante Expresión Regular para URLs de YouTube (watch, share, shorts)
+  const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/;
+  if (!url || !ytRegex.test(url)) {
     return res.status(400).json({ error: 'Proporcioná una URL de YouTube válida.' });
   }
 
@@ -157,61 +159,60 @@ app.post('/transcribe-youtube', async (req, res) => {
   const outputBase = path.join(__dirname, 'uploads', `transcription-${tempId}`);
   const outputTxtPath = `${outputBase}.txt`;
 
-  let currentFFmpegProcess = null;
-  let currentWhisperProcess = null;
-  let downloadWriteStream = null;
-  const requestAborted = false;
-  let videoTitle = 'Video de YouTube';
-  let channelName = 'Desconocido';
-  let videoDurationStr = 'Desconocida';
+  const ytDlpPath = '/home/juan/.local/share/bin/yt-dlp';
 
-  console.log(`[${new Date().toLocaleTimeString()}] Recibida solicitud de transcripción para YouTube: ${url}`);
+  console.log(`[${new Date().toLocaleTimeString()}] Recibida solicitud de transcripción para YouTube con yt-dlp: ${url}`);
 
-  try {
-    // 1. Obtener metadatos e info del video
-    console.log(`[${new Date().toLocaleTimeString()}] Obteniendo metadatos del video...`);
-    const info = await ytdl.getInfo(url);
-    videoTitle = info.videoDetails.title;
-    channelName = info.videoDetails.author.name;
-    
-    // Formatear duración (segundos a mm:ss o hh:mm:ss)
-    const durationSeconds = parseInt(info.videoDetails.lengthSeconds, 10) || 0;
-    if (durationSeconds > 0) {
-      const hrs = Math.floor(durationSeconds / 3600);
-      const mins = Math.floor((durationSeconds % 3600) / 60);
-      const secs = durationSeconds % 60;
-      videoDurationStr = hrs > 0 
-        ? `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-        : `${mins}:${secs.toString().padStart(2, '0')}`;
+  // 1. Obtener metadatos e info del video mediante yt-dlp --dump-json
+  console.log(`[${new Date().toLocaleTimeString()}] Obteniendo metadatos del video con yt-dlp...`);
+  const dumpJsonCmd = `"${ytDlpPath}" --dump-json "${url}"`;
+
+  exec(dumpJsonCmd, (metaErr, metaStdout, metaStderr) => {
+    if (metaErr) {
+      console.error('Error al obtener metadatos con yt-dlp:', metaErr);
+      return res.status(502).json({ error: 'No se pudieron recuperar los metadatos de YouTube. Verificá el enlace o tu conexión.' });
+    }
+
+    let videoTitle = 'Video de YouTube';
+    let channelName = 'Desconocido';
+    let videoDurationStr = 'Desconocida';
+
+    try {
+      const meta = JSON.parse(metaStdout);
+      videoTitle = meta.title || videoTitle;
+      channelName = meta.uploader || meta.channel || channelName;
+      const durationSeconds = parseInt(meta.duration, 10) || 0;
+      if (durationSeconds > 0) {
+        const hrs = Math.floor(durationSeconds / 3600);
+        const mins = Math.floor((durationSeconds % 3600) / 60);
+        const secs = durationSeconds % 60;
+        videoDurationStr = hrs > 0 
+          ? `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+          : `${mins}:${secs.toString().padStart(2, '0')}`;
+      }
+    } catch (parseErr) {
+      console.error('Error al parsear JSON de yt-dlp:', parseErr);
     }
 
     console.log(`[${new Date().toLocaleTimeString()}] Video identificado: "${videoTitle}" (${videoDurationStr})`);
 
-    if (requestAborted) return;
+    // 2. Descargar y extraer audio de YouTube usando yt-dlp
+    console.log(`[${new Date().toLocaleTimeString()}] Iniciando descarga y extracción de audio temporal con yt-dlp...`);
+    const downloadCmd = `"${ytDlpPath}" -x --audio-format mp3 -o "${mp3Path}" "${url}"`;
 
-    // 2. Descargar audio de YouTube
-    console.log(`[${new Date().toLocaleTimeString()}] Iniciando descarga de audio en formato MP3 temporal...`);
-    const downloadStream = ytdl(url, {
-      quality: 'highestaudio',
-      filter: 'audioonly'
-    });
+    exec(downloadCmd, (downloadErr, downloadStdout, downloadStderr) => {
+      if (downloadErr) {
+        console.error('Error al descargar audio con yt-dlp:', downloadErr);
+        cleanupFiles([mp3Path]);
+        return res.status(502).json({ error: 'No se pudo descargar la pista de audio de YouTube.' });
+      }
 
-    downloadWriteStream = fs.createWriteStream(mp3Path);
-    downloadStream.pipe(downloadWriteStream);
-
-    downloadWriteStream.on('finish', () => {
-      downloadWriteStream = null;
-      if (requestAborted) return;
-
-      console.log(`[${new Date().toLocaleTimeString()}] Descarga finalizada con éxito. Iniciando conversión a WAV...`);
+      console.log(`[${new Date().toLocaleTimeString()}] Descarga y extracción finalizadas. Iniciando conversión a WAV...`);
 
       // 3. Convertir MP3 a WAV a 16kHz mono con FFmpeg
       const ffmpegCmd = `ffmpeg -i "${mp3Path}" -ar 16000 -ac 1 -c:a pcm_s16le "${wavPath}" -y`;
       
-      currentFFmpegProcess = exec(ffmpegCmd, (ffmpegErr, stdout, stderr) => {
-        currentFFmpegProcess = null;
-        if (requestAborted) return;
-
+      exec(ffmpegCmd, (ffmpegErr, ffmpegStdout, ffmpegStderr) => {
         if (ffmpegErr) {
           console.error('Error al convertir audio de YouTube con FFmpeg:', ffmpegErr);
           cleanupFiles([mp3Path, wavPath]);
@@ -234,22 +235,17 @@ app.post('/transcribe-youtube', async (req, res) => {
         const modelPath = path.join(__dirname, 'whisper.cpp', 'models', selectedModel);
         const whisperCmd = `"${whisperBin}" -m "${modelPath}" -f "${wavPath}" -l es -otxt -of "${outputBase}"`;
 
-        currentWhisperProcess = exec(whisperCmd, (whisperErr, whisperStdout, whisperStderr) => {
-          currentWhisperProcess = null;
-          if (requestAborted) return;
-
+        exec(whisperCmd, (whisperErr, whisperStdout, whisperStderr) => {
           if (whisperErr) {
             console.error('Error al transcribir video de YouTube con Whisper:', whisperErr);
             cleanupFiles([mp3Path, wavPath, outputTxtPath]);
-            return res.status(500).json({ error: 'Error en el motor local de transcripción al procesar YouTube.' });
+            return res.status(500).json({ error: 'Error en el motor local de transcripción al procesar el audio de YouTube.' });
           }
 
           console.log(`[${new Date().toLocaleTimeString()}] Transcripción completada exitosamente.`);
 
           // 5. Leer texto y formatear resultado
           fs.readFile(outputTxtPath, 'utf8', (readErr, data) => {
-            if (requestAborted) return;
-
             // Limpiar archivos temporales
             cleanupFiles([mp3Path, wavPath, outputTxtPath]);
 
@@ -274,22 +270,7 @@ app.post('/transcribe-youtube', async (req, res) => {
         });
       });
     });
-
-    downloadStream.on('error', (err) => {
-      console.error('Error en el streaming de descarga de YouTube:', err);
-      cleanupFiles([mp3Path, wavPath]);
-      if (!res.headersSent) {
-        res.status(502).json({ error: 'No se pudo descargar el audio desde los servidores de YouTube. Comprobá el enlace.' });
-      }
-    });
-
-  } catch (err) {
-    console.error('Error al procesar la descarga de YouTube:', err);
-    cleanupFiles([mp3Path, wavPath]);
-    if (!res.headersSent) {
-      res.status(500).json({ error: 'Ocurrió un error inesperado al intentar conectarse con YouTube.' });
-    }
-  }
+  });
 });
 
 // Función de utilidad para eliminar archivos temporales
