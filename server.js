@@ -166,7 +166,7 @@ app.post('/format-ai', (req, res) => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey.trim() === '') {
     console.error(`[${new Date().toLocaleTimeString()}] ❌ Error: GEMINI_API_KEY no configurada en el archivo .env`);
-    return res.status(500).json({ error: 'La clave de API de Gemini (GEMINI_API_KEY) no está configurada en el archivo .env del servidor.' });
+    return res.status(500).json({ error: 'La clave de API de Gemini (GEMINI_API_KEY) no está configurada en el archivo .env del servidor. Obtenela gratis en: https://aistudio.google.com/api-keys' });
   }
 
   let requestAborted = false;
