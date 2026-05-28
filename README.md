@@ -1,7 +1,7 @@
 # 🎙️ Talkie
 [Guía de Uso Rápido](file:///home/juan/Documentos/Dev/Apps/Vox2Text/README.md#4-uso-y-accesibilidad)
 
-**Talkie** es una aplicación web autohospedada diseñada para la transcripción accesible de archivos de audio MP3 a texto y el post-procesamiento inteligente de notas. La aplicación procesa el audio de forma **100% local y privada** mediante Whisper.cpp (sea cargando un archivo local o pegando un enlace de **YouTube** a través de la robusta utilidad local **`yt-dlp`**), y luego permite estructurar y traducir la transcripción de manera ágil a través de la **API de Google Gemini (gemini-2.5-flash)** de forma segura bajo demanda.
+**Talkie** es una aplicación web autohospedada diseñada para la transcripción accesible de archivos de audio MP3, grabaciones directas de voz y videos de YouTube a texto, junto con el post-procesamiento inteligente de notas. La aplicación procesa el audio de forma **100% local y privada** mediante Whisper.cpp (sea cargando un archivo local, grabando directamente desde el **micrófono** o pegando un enlace de **YouTube** a través de la robusta utilidad local **`yt-dlp`**), y luego permite estructurar y traducir la transcripción de manera ágil a través de la **API de Google Gemini (gemini-2.5-flash)** de forma segura bajo demanda.
 
 La interfaz de usuario fue diseñada bajo estrictas directrices de **accesibilidad (A11y)** utilizando **Bootstrap 5.3** (modo oscuro por defecto y modo claro premium), haciéndola sumamente cómoda y legible para personas disminuidas visuales.
 
@@ -10,8 +10,9 @@ La interfaz de usuario fue diseñada bajo estrictas directrices de **accesibilid
 ### 1. ⚙️ Características Principales
 
 *   **Transcripción Local y Privada:** Tus audios se procesan localmente en tu computadora a través de Whisper.cpp. Tus datos personales y de audio permanecen seguros sin subirse a la nube.
-*   **Entrada Dual (Archivo Local y YouTube):**
-    *   **Subida Local:** Carga directa mediante arrastrar y soltar de archivos MP3.
+*   **Entrada Triple (Archivo Local, Micrófono y YouTube):**
+    *   **Subida Local:** Carga directa mediante arrastrar y soltar de archivos de audio MP3, WebM, OGG o WAV.
+    *   **Grabación por Micrófono Premium:** Captura interactiva directa utilizando la API estándar de **MediaRecorder**, con cronómetro dinámico digital de alta precisión, animación pulsante roja de estado y apagado de hardware físico del micrófono tras finalizar para absoluta privacidad.
     *   **Enlace de YouTube:** Pegá cualquier enlace y el backend utilizará el potente motor local **`yt-dlp`** para extraer la pista de audio de forma ultrarrápida y totalmente inmune a bloqueos.
     *   **Metadatos Automatizados:** Obtención del título real del video de YouTube, canal del autor y duración, inyectándolos como cabecera Markdown en tu transcripción y autocompletando el nombre de descarga sugerido.
 *   **Modelos de Transcripción Whisper:**

@@ -305,3 +305,65 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 0.45 !important;
   user-select: none !important;
 }
+
+/* Sección interactiva del Micrófono */
+.microphone-section {
+  background: var(--dropzone-bg) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: 0 4px 15px var(--shadow-intensity);
+  transition: all 0.3s ease;
+}
+
+.microphone-section:hover {
+  border-color: rgba(239, 68, 68, 0.25) !important;
+  box-shadow: 0 8px 25px var(--shadow-hover-intensity);
+}
+
+/* Botón de Micrófono circular Premium */
+.btn-mic {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.1);
+}
+
+.btn-mic:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.8) !important;
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.2) !important;
+}
+
+/* Estado Grabando: Animación pulsante roja de alta visibilidad */
+.btn-mic.recording {
+  background: rgb(239, 68, 68) !important;
+  border-color: rgb(220, 38, 38) !important;
+  color: #ffffff !important;
+  animation: pulse-red 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7) !important;
+}
+
+.btn-mic.recording:hover {
+  transform: scale(1.05);
+}
+
+@keyframes pulse-red {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7) !important;
+  }
+  70% {
+    transform: scale(1.04);
+    box-shadow: 0 0 0 15px rgba(239, 68, 68, 0) !important;
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0) !important;
+  }
+}
+
+/* Visibilidad de los estados dinámicos del micrófono */
+#mic-timer.recording-active {
+  color: rgb(239, 68, 68) !important;
+}
+

@@ -600,4 +600,292 @@ document.addEventListener('DOMContentLoaded', () => {
     link.click();
     document.body.removeChild(link);
   });
+
+  // --- GESTIÓN DE GRABACIÓN DIRECTA CON MICRÓFONO ---
+
+  const micBtn = document.getElementById('mic-btn');
+  const micStatus = document.getElementById('mic-status');
+  const micTimer = document.getElementById('mic-timer');
+  const micActions = document.getElementById('mic-actions');
+  const micSubmitBtn = document.getElementById('mic-submit-btn');
+  const micDiscardBtn = document.getElementById('mic-discard-btn');
+  const microphoneSectionCard = document.querySelector('.microphone-section');
+
+  let mediaRecorder = null;
+  let audioStream = null;
+  let audioChunks = [];
+  let recordingInterval = null;
+  let recordingStartTime = null;
+  let recordedAudioBlob = null;
+
+  if (micBtn) {
+    micBtn.addEventListener('click', () => {
+      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        startRecording();
+      } else if (mediaRecorder.state === 'recording') {
+        stopRecording();
+      }
+    });
+
+    // Soporte para accesibilidad por teclado (Enter o Espacio)
+    micBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        micBtn.click();
+      }
+    });
+  }
+
+  // Iniciar la grabación de voz
+  async function startRecording() {
+    audioChunks = [];
+    recordedAudioBlob = null;
+
+    try {
+      // Solicitar acceso al hardware del micrófono de forma segura
+      audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Crear instancia de MediaRecorder
+      mediaRecorder = new MediaRecorder(audioStream);
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        buildRecordedBlob();
+      };
+
+      // Modificar clases e interactividad del botón de micrófono (pulsación roja)
+      micBtn.classList.add('recording');
+      micBtn.setAttribute('aria-label', 'Detener grabación de audio');
+      micBtn.setAttribute('title', 'Detener grabación');
+      micStatus.textContent = 'Grabando...';
+      micStatus.classList.replace('text-secondary', 'text-danger');
+      
+      // Mostrar y configurar el cronómetro digital
+      micTimer.classList.remove('d-none');
+      micTimer.classList.add('recording-active');
+      micTimer.textContent = '00:00';
+      
+      recordingStartTime = Date.now();
+      recordingInterval = setInterval(updateTimer, 1000);
+
+      // Deshabilitar otros flujos de carga para evitar concurrencia
+      dropZone.classList.add('disabled-element');
+      youtubeSectionCard.classList.add('disabled-element');
+      if (modelSelect) modelSelect.classList.add('disabled-element');
+      
+      // Ocultar controles de acción por si estuvieran visibles
+      micActions.classList.add('d-none');
+
+      // Iniciar la grabación
+      mediaRecorder.start();
+      console.log('[Micrófono] Grabación iniciada.');
+
+    } catch (err) {
+      console.error('[Micrófono] Error al acceder al hardware de audio:', err);
+      alert('No se pudo acceder al micrófono. Por favor, verificá que diste los permisos de audio en tu navegador.');
+      resetMicUI();
+    }
+  }
+
+  // Detener la grabación de voz
+  function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+      
+      // Detener el cronómetro de la interfaz
+      clearInterval(recordingInterval);
+      
+      // Detener todas las pistas de audio para apagar la luz física de grabación del navegador
+      if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
+      }
+
+      // Restablecer estilos básicos del botón
+      micBtn.classList.remove('recording');
+      micBtn.setAttribute('aria-label', 'Comenzar a grabar audio desde tu micrófono');
+      micBtn.setAttribute('title', 'Comenzar a grabar');
+      
+      micStatus.textContent = 'Grabación finalizada';
+      micStatus.classList.replace('text-danger', 'text-success');
+      micTimer.classList.remove('recording-active');
+      
+      // Mostrar las opciones de acción (Transcribir / Descartar)
+      micActions.classList.remove('d-none');
+      micSubmitBtn.focus(); // Foco accesible
+      
+      console.log('[Micrófono] Grabación detenida.');
+    }
+  }
+
+  // Actualizar el cronómetro digital de forma visual
+  function updateTimer() {
+    const elapsedSeconds = Math.floor((Date.now() - recordingStartTime) / 1000);
+    const mins = Math.floor(elapsedSeconds / 60).toString().padStart(2, '0');
+    const secs = (elapsedSeconds % 60).toString().padStart(2, '0');
+    micTimer.textContent = `${mins}:${secs}`;
+  }
+
+  // Construir el archivo Blob de audio final
+  function buildRecordedBlob() {
+    // Generar formato WebM estable
+    recordedAudioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+    console.log(`[Micrófono] Blob de audio generado con éxito. Tamaño: ${formatBytes(recordedAudioBlob.size)}`);
+  }
+
+  // Descartar la grabación actual
+  if (micDiscardBtn) {
+    micDiscardBtn.addEventListener('click', () => {
+      recordedAudioBlob = null;
+      audioChunks = [];
+      resetMicUI();
+      console.log('[Micrófono] Grabación descartada.');
+    });
+  }
+
+  // Enviar la grabación de voz a transcribir
+  if (micSubmitBtn) {
+    micSubmitBtn.addEventListener('click', async () => {
+      if (!recordedAudioBlob || recordedAudioBlob.size === 0) {
+        alert('No hay ninguna grabación disponible para procesar.');
+        return;
+      }
+
+      const selectedModel = modelSelect ? modelSelect.value : 'small';
+
+      // Ocultar sección de micrófono y controles para mostrar la barra de progreso
+      dropZone.classList.add('d-none');
+      fileInfo.classList.add('d-none');
+      progressSection.classList.remove('d-none');
+      
+      // Iniciar simulación de barra de progreso inteligente
+      let progress = 0;
+      progressBar.style.width = '0%';
+      progressBar.setAttribute('aria-valuenow', 0);
+      progressPercent.textContent = '0%';
+      progressStatus.textContent = 'Procesando grabación de voz...';
+
+      transcribeAbortController = new AbortController();
+
+      progressInterval = setInterval(() => {
+        if (progress < 90) {
+          const increment = (90 - progress) * 0.05;
+          progress += Math.max(0.5, increment);
+          const displayProgress = Math.round(progress);
+          
+          progressBar.style.width = `${displayProgress}%`;
+          progressBar.setAttribute('aria-valuenow', displayProgress);
+          progressPercent.textContent = `${displayProgress}%`;
+          
+          if (progress > 15 && progress < 45) {
+            progressStatus.textContent = 'Analizando códecs y espectro de voz (FFmpeg)...';
+          } else if (progress >= 45 && progress < 80) {
+            progressStatus.textContent = `Transcribiendo voz con Whisper local (Modelo ${selectedModel === 'base' ? 'Base' : selectedModel === 'small' ? 'Small' : 'Medium'})...`;
+          } else if (progress >= 80) {
+            progressStatus.textContent = 'Decodificando texto hablado. Casi listo...';
+          }
+        }
+      }, 1500);
+
+      // Empaquetar la grabación WebM en el formulario multipart de forma idéntica a subida
+      const formData = new FormData();
+      formData.append('audio', recordedAudioBlob, 'grabacion.webm');
+      formData.append('model', selectedModel);
+
+      try {
+        const response = await fetch('/transcribe', {
+          method: 'POST',
+          body: formData,
+          signal: transcribeAbortController.signal
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Ocurrió un error al procesar tu grabación.');
+        }
+
+        const result = await response.json();
+        
+        // Completar progreso al 100%
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+        progressBar.setAttribute('aria-valuenow', 100);
+        progressPercent.textContent = '100%';
+        progressStatus.textContent = 'Transcripción de voz completada!';
+
+        setTimeout(() => {
+          progressSection.classList.add('d-none');
+          resultSection.classList.remove('d-none');
+          
+          // Reestablecer la UI del micrófono para uso posterior
+          resetMicUI();
+
+          // Cargar texto y enfocar
+          rawTranscriptionText = result.transcription;
+          transcriptionText.innerHTML = escapeHtml(rawTranscriptionText);
+          transcriptionText.focus();
+        }, 800);
+
+      } catch (error) {
+        clearInterval(progressInterval);
+        
+        if (error.name === 'AbortError') {
+          console.log('[Cliente] Transcripción de voz cancelada.');
+          resetMicUI();
+          return;
+        }
+        
+        progressSection.classList.add('d-none');
+        resetMicUI();
+        alert(`Error al procesar la grabación: ${error.message}`);
+      }
+    });
+  }
+
+  // Restablecer la interfaz de usuario del micrófono a su estado inicial
+  function resetMicUI() {
+    if (recordingInterval) {
+      clearInterval(recordingInterval);
+    }
+    if (audioStream) {
+      audioStream.getTracks().forEach(track => track.stop());
+    }
+
+    mediaRecorder = null;
+    audioStream = null;
+    audioChunks = [];
+
+    if (micBtn) {
+      micBtn.classList.remove('recording');
+      micBtn.setAttribute('aria-label', 'Comenzar a grabar audio desde tu micrófono');
+      micBtn.setAttribute('title', 'Comenzar a grabar');
+    }
+    
+    if (micStatus) {
+      micStatus.textContent = 'Inactivo';
+      micStatus.className = 'fw-semibold text-secondary';
+    }
+    
+    if (micTimer) {
+      micTimer.textContent = '00:00';
+      micTimer.classList.remove('recording-active');
+      micTimer.classList.add('d-none');
+    }
+    
+    if (micActions) {
+      micActions.classList.add('d-none');
+    }
+
+    // Volver a habilitar otros flujos
+    dropZone.classList.remove('disabled-element');
+    youtubeSectionCard.classList.remove('disabled-element');
+    if (modelSelect) modelSelect.classList.remove('disabled-element');
+    
+    dropZone.classList.remove('d-none');
+  }
 });
+

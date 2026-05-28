@@ -23,11 +23,25 @@ const upload = multer({
     fileSize: 100 * 1024 * 1024, // Limite de 100MB por archivo
   },
   fileFilter: (req, file, cb) => {
-    // Validar tipo MIME
-    if (file.mimetype === 'audio/mpeg' || file.mimetype === 'audio/mp3' || file.originalname.endsWith('.mp3')) {
+    // Validar tipo MIME (permitir MP3, WebM, OGG y WAV para compatibilidad de grabaciones del micrófono)
+    const allowedMimeTypes = [
+      'audio/mpeg',
+      'audio/mp3',
+      'audio/webm',
+      'video/webm',
+      'audio/ogg',
+      'audio/wav',
+      'audio/x-wav'
+    ];
+    const isAllowedExt = file.originalname.endsWith('.mp3') || 
+                         file.originalname.endsWith('.webm') || 
+                         file.originalname.endsWith('.wav') || 
+                         file.originalname.endsWith('.ogg');
+
+    if (allowedMimeTypes.includes(file.mimetype) || isAllowedExt) {
       cb(null, true);
     } else {
-      cb(new Error('Solo se permiten archivos de audio MP3.'));
+      cb(new Error('Solo se permiten archivos de audio MP3, WebM, OGG o WAV.'));
     }
   }
 });
