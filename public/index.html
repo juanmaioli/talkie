@@ -48,109 +48,124 @@
   <main class="container my-5" role="main">
     <div class="row g-4 justify-content-center">
 
-      <!-- Panel de carga de archivos -->
-      <section class="col-lg-8" aria-labelledby="upload-section-title">
-        <div class="card card-premium p-4 p-md-5 text-center">
-          <h2 id="upload-section-title" class="h4 mb-3 fw-semibold">1. Subí tu archivo de audio MP3</h2>
-
-          <!-- Selector de modelo accesible -->
-          <div class="mb-4 text-start bg-dark-subtle p-3 rounded-4 border border-secondary">
-            <label for="model-select" class="form-label fw-semibold text-light mb-1 d-flex align-items-center gap-2">
-              <span>🧠</span> Elegir Modelo de Transcripción:
-            </label>
-            <select id="model-select" class="form-select bg-dark text-light border-secondary rounded-pill px-3 py-2 cursor-pointer" aria-label="Elegir modelo de procesamiento">
-              <option value="medium">Modelo Medium (Precisión Máxima - 1.5 GB) [Ideal para fidelidad extrema]</option>
-              <option value="small" selected>Modelo Small (Equilibrado - 460 MB) [Balance ideal velocidad/precisión]</option>
-              <option value="base">Modelo Base (Ultra Rápido - 140 MB) [Ideal para audios largos/velocidad]</option>
-            </select>
-
+      <!-- Paso 1: Configuración del Modelo de Transcripción (Ancho Completo) -->
+      <section class="col-lg-12 mb-4" aria-labelledby="model-section-title">
+        <div class="card card-premium p-4">
+          <h2 id="model-section-title" class="h5 mb-3 fw-semibold d-flex align-items-center gap-2">
+            <span>🧠</span> Paso 1: Elegir Modelo de Transcripción
+          </h2>
+          <select id="model-select" class="form-select bg-dark text-light border-secondary rounded-pill px-3 py-2 cursor-pointer" aria-label="Elegir modelo de procesamiento">
+            <option value="medium">Modelo Medium (Precisión Máxima - 1.5 GB) [Ideal para fidelidad extrema]</option>
+            <option value="small" selected>Modelo Small (Equilibrado - 460 MB) [Balance ideal velocidad/precisión]</option>
+            <option value="base">Modelo Base (Ultra Rápido - 140 MB) [Ideal para audios largos/velocidad]</option>
+          </select>
+          <div class="form-text text-secondary mt-2 small">
+            * El modelo <strong>Base</strong> prioriza la velocidad. El modelo <strong>Small</strong> ofrece el balance óptimo. El modelo <strong>Medium</strong> brinda la fidelidad lingüística y ortográfica máxima.
           </div>
+        </div>
+      </section>
 
-          <!-- Zona de arrastre accesible -->
-          <div id="drop-zone" class="drop-zone d-flex flex-column align-items-center justify-content-center p-1 rounded-4 border border-dashed cursor-pointer" tabindex="0" role="button" aria-label="Subir archivo de audio MP3. Presioná enter para seleccionar un archivo o arrastralo aquí.">
-            <span class="fs-1 mb-3 text-secondary" aria-hidden="true">🎵</span>
-            <p class="fs-5 fw-medium mb-1">Arrastrá tu archivo MP3 acá</p>
-            <span class="btn btn-outline-light rounded-pill px-4 m-3" id="select-file-btn">Seleccionar Archivo</span>
-            <input type="file" id="audio-input" accept="audio/mpeg, audio/mp3" class="d-none">
-          </div>
-
-          <!-- Separación visual para micrófono -->
-          <div class="d-flex align-items-center my-4">
-            <hr class="flex-grow-1 border-secondary-subtle">
-            <span class="px-3 text-secondary small text-uppercase fw-semibold select-none">o grabar directamente de tu voz</span>
-            <hr class="flex-grow-1 border-secondary-subtle">
-          </div>
-
-          <!-- Sección de Grabación con Micrófono -->
-          <div class="microphone-section text-center bg-dark-subtle p-4 rounded-4 border border-secondary mb-4">
-            <h3 class="h5 fw-semibold text-light mb-3 d-flex align-items-center justify-content-center gap-2">
-              <span aria-hidden="true">🎙️</span> Grabar con Micrófono
-            </h3>
-            <p class="text-secondary small mb-4">Hacé clic en el botón para comenzar a grabar. Tu voz se procesará y transcribirá de forma 100% local y privada.</p>
-            
-            <div class="d-flex flex-column align-items-center justify-content-center gap-3">
-              <!-- Botón interactivo de Micrófono -->
-              <button id="mic-btn" class="btn btn-outline-danger btn-mic rounded-circle d-flex align-items-center justify-content-center border-3" style="width: 80px; height: 80px;" aria-label="Comenzar a grabar audio desde tu micrófono" title="Comenzar a grabar">
-                <span class="fs-2 select-none" aria-hidden="true">🎙️</span>
-              </button>
-              
-              <!-- Estado y Cronómetro -->
-              <div class="d-flex flex-column align-items-center gap-1">
-                <span id="mic-status" class="fw-semibold text-secondary">Inactivo</span>
-                <span id="mic-timer" class="fs-4 fw-bold font-monospace text-secondary d-none">00:00</span>
-              </div>
-
-              <!-- Controles de acción cuando la grabación está lista para procesar o descartar -->
-              <div id="mic-actions" class="d-flex gap-2 d-none mt-2">
-                <button id="mic-submit-btn" class="btn btn-success rounded-pill px-4 py-2 fw-semibold d-flex align-items-center gap-2">
-                  <span>Transcribir Grabación</span>
-                  <span class="fs-6" aria-hidden="true">⚡</span>
-                </button>
-                <button id="mic-discard-btn" class="btn btn-outline-danger rounded-pill px-3 py-2" aria-label="Descartar grabación actual">Descartar</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Separación visual opcional -->
-          <div class="d-flex align-items-center my-4">
-            <hr class="flex-grow-1 border-secondary-subtle">
-            <span class="px-3 text-secondary small text-uppercase fw-semibold select-none">o transcribir desde enlace web</span>
-            <hr class="flex-grow-1 border-secondary-subtle">
-          </div>
-
-          <!-- Sección de pegado de URL de YouTube -->
-          <div class="youtube-section text-start bg-dark-subtle p-4 rounded-4 border border-secondary">
-            <h3 class="h5 fw-semibold text-light mb-3 d-flex align-items-center gap-2">
-              <span aria-hidden="true">📺</span> Transcribir desde YouTube
-            </h3>
-            <div class="mb-3">
-              <label for="youtube-url" class="form-label visually-hidden">URL del video de YouTube</label>
-              <input type="url" id="youtube-url" class="form-control bg-dark text-light border-secondary rounded-pill px-4 py-3" placeholder="Ej: https://www.youtube.com/watch?v=..." aria-label="Pegar enlace de video de YouTube aquí">
-            </div>
-
-            <button id="youtube-btn" class="btn btn-primary rounded-pill px-4 py-3 w-100 d-flex align-items-center justify-content-center gap-2 fw-semibold mt-3">
-              <span>Descargar y Transcribir</span>
-              <span class="fs-6" aria-hidden="true">📥</span>
-            </button>
-          </div>
-
-          <!-- Información del archivo seleccionado -->
-          <div id="file-info" class="mt-4 p-3 bg-dark-subtle rounded-3 d-none border border-secondary flex-wrap justify-content-between align-items-center text-start gap-3">
-            <div class="d-flex align-items-center gap-3">
-              <span class="fs-2" aria-hidden="true">📄</span>
+      <!-- Paso 2: Elegir método de entrada y transcribir (Tres Columnas) -->
+      <section class="col-lg-12" aria-labelledby="input-methods-title">
+        <h2 id="input-methods-title" class="visually-hidden">Paso 2: Elegir método de entrada</h2>
+        <div class="row g-4 justify-content-center">
+          
+          <!-- Columna 1: Subida de Archivo MP3 -->
+          <div class="col-lg-4 col-md-6">
+            <div class="card card-premium h-100 p-4 text-center d-flex flex-column justify-content-between">
               <div>
-                <p id="file-name" class="fw-semibold mb-0 text-truncate" style="max-width: 250px;"></p>
-                <p id="file-size" class="small text-secondary mb-0"></p>
+                <h3 class="h5 mb-3 fw-semibold text-light d-flex align-items-center justify-content-center gap-2">
+                  <span aria-hidden="true">🎵</span> Subir Audio MP3
+                </h3>
+                <p class="text-secondary small mb-4">Cargá un archivo de audio local arrastrándolo a la zona punteada o explorando tu equipo.</p>
+              </div>
+              
+              <!-- Zona de arrastre accesible -->
+              <div id="drop-zone" class="drop-zone d-flex flex-column align-items-center justify-content-center p-4 rounded-4 border border-dashed cursor-pointer" tabindex="0" role="button" aria-label="Subir archivo de audio MP3, WebM, OGG o WAV. Presioná enter para seleccionar un archivo o arrastralo aquí.">
+                <span class="fs-1 mb-2 text-secondary" aria-hidden="true">📁</span>
+                <p class="small fw-medium mb-2">Arrastrá tu archivo acá</p>
+                <span class="btn btn-outline-light btn-sm rounded-pill px-3 py-1" id="select-file-btn">Seleccionar</span>
+                <input type="file" id="audio-input" accept="audio/mpeg, audio/mp3, audio/webm, audio/ogg, audio/wav" class="d-none">
+              </div>
+
+              <!-- Información del archivo seleccionado -->
+              <div id="file-info" class="mt-3 p-3 bg-dark-subtle rounded-3 d-none border border-secondary text-start">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <span class="fs-3" aria-hidden="true">📄</span>
+                  <div class="overflow-hidden">
+                    <p id="file-name" class="fw-semibold small mb-0 text-truncate"></p>
+                    <p id="file-size" class="small text-secondary mb-0" style="font-size: 0.75rem;"></p>
+                  </div>
+                </div>
+                <div class="d-flex gap-2">
+                  <button id="transcribe-btn" class="btn btn-primary btn-sm rounded-pill w-100 fw-semibold d-flex align-items-center justify-content-center gap-1 py-2">
+                    <span>Transcribir</span>
+                    <span class="fs-7" aria-hidden="true">⚡</span>
+                  </button>
+                  <button id="remove-file-btn" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-2" aria-label="Quitar archivo seleccionado">Quitar</button>
+                </div>
               </div>
             </div>
-            <div class="d-flex gap-2">
-              <button id="transcribe-btn" class="btn btn-primary rounded-pill px-4 d-flex align-items-center gap-2 fw-semibold">
-                <span>Transcribir Audio</span>
-                <span class="fs-6" aria-hidden="true">⚡</span>
-              </button>
-              <button id="remove-file-btn" class="btn btn-outline-danger rounded-pill px-3" aria-label="Quitar archivo seleccionado">Quitar</button>
+          </div>
+
+          <!-- Columna 2: Grabación por Micrófono -->
+          <div class="col-lg-4 col-md-6">
+            <div class="card card-premium microphone-section h-100 p-4 text-center d-flex flex-column justify-content-between">
+              <div>
+                <h3 class="h5 mb-3 fw-semibold text-light d-flex align-items-center justify-content-center gap-2">
+                  <span aria-hidden="true">🎙️</span> Grabar Voz
+                </h3>
+                <p class="text-secondary small mb-4">Grabá tu voz en vivo desde el navegador. La captura se procesará localmente de forma privada.</p>
+              </div>
+
+              <div class="d-flex flex-column align-items-center justify-content-center gap-3 my-auto">
+                <!-- Botón interactivo de Micrófono -->
+                <button id="mic-btn" class="btn btn-outline-danger btn-mic rounded-circle d-flex align-items-center justify-content-center border-3" style="width: 76px; height: 76px;" aria-label="Comenzar a grabar audio desde tu micrófono" title="Comenzar a grabar">
+                  <span class="fs-2 select-none" aria-hidden="true">🎙️</span>
+                </button>
+                
+                <!-- Estado y Cronómetro -->
+                <div class="d-flex flex-column align-items-center gap-1">
+                  <span id="mic-status" class="fw-semibold text-secondary small">Inactivo</span>
+                  <span id="mic-timer" class="fs-5 fw-bold font-monospace text-secondary d-none">00:00</span>
+                </div>
+
+                <!-- Controles de acción cuando la grabación está lista -->
+                <div id="mic-actions" class="d-flex gap-2 d-none mt-2 w-100">
+                  <button id="mic-submit-btn" class="btn btn-success btn-sm rounded-pill w-100 fw-semibold d-flex align-items-center justify-content-center gap-1 py-2">
+                    <span>Transcribir</span>
+                    <span class="fs-7" aria-hidden="true">⚡</span>
+                  </button>
+                  <button id="mic-discard-btn" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-2" aria-label="Descartar grabación actual">Quitar</button>
+                </div>
+              </div>
             </div>
           </div>
+
+          <!-- Columna 3: Descarga y Transcripción desde YouTube -->
+          <div class="col-lg-4 col-md-6">
+            <div class="card card-premium youtube-section h-100 p-4 text-center d-flex flex-column justify-content-between">
+              <div>
+                <h3 class="h5 mb-3 fw-semibold text-light d-flex align-items-center justify-content-center gap-2">
+                  <span aria-hidden="true">📺</span> Desde YouTube
+                </h3>
+                <p class="text-secondary small mb-4">Pegá el enlace de cualquier video. Descargaremos el audio y lo transcribiremos en tu equipo.</p>
+              </div>
+
+              <div class="w-100 text-start mt-auto">
+                <div class="mb-3">
+                  <label for="youtube-url" class="form-label visually-hidden">URL del video de YouTube</label>
+                  <input type="url" id="youtube-url" class="form-control form-control-sm bg-dark text-light border-secondary rounded-pill px-3 py-2" placeholder="Ej: https://www.youtube.com/watch?v=..." aria-label="Pegar enlace de video de YouTube aquí">
+                </div>
+                
+                <button id="youtube-btn" class="btn btn-primary btn-sm rounded-pill w-100 fw-semibold d-flex align-items-center justify-content-center gap-2 py-2">
+                  <span>Descargar y Transcribir</span>
+                  <span class="fs-7" aria-hidden="true">📥</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
 
