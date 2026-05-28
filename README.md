@@ -76,9 +76,13 @@ Asegurate de tener instalados **Docker** y **Docker Compose**, y ejecutá en la 
 docker compose up -d --build
 ```
 
-Esto compilará Whisper.cpp nativamente dentro del contenedor en Alpine y montará tus certificados SSL locales y modelos binarios descargados (`/whisper.cpp/models/`) automáticamente como volúmenes. La aplicación estará disponible de forma segura a través de **HTTPS** en:
+Esto compilará Whisper.cpp nativamente dentro del contenedor en Alpine y montará tus certificados SSL locales y modelos binarios descargados (`/whisper.cpp/models/`) automáticamente como volúmenes. 
+
+Para asegurar el rendimiento óptimo del sistema host durante las tareas pesadas de transcripción con IA, el contenedor está limitado a un máximo de **2 CPUs y 2 GB de memoria RAM**.
+
+La aplicación estará disponible de forma segura a través de **HTTPS** en:
 ```text
-https://localhost:3000
+https://localhost:8054
 ```
 
 ---
